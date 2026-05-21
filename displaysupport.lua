@@ -1,2 +1,2 @@
--- example entry below
+--  (WANTED AUTOFARM BUY CLICKS FOR DIFFERENT SCREEN SIZES)
 -- click(100,100) // click(X,Y)
