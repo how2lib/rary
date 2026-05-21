@@ -1,0 +1,2 @@
+-- example entry below
+-- click(100,100) // click(X,Y)
