@@ -1,3 +1,4 @@
 --  (WANTED AUTOFARM BUY CLICKS FOR DIFFERENT SCREEN SIZES)
 -- click(100,100) // click(X,Y)
 click(1016,887)
+click(1287,999)
