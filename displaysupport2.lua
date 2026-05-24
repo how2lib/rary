@@ -1,3 +1,4 @@
+local VirtualInputManager = game:GetService("VirtualInputManager")
 --// CLICK FUNCTION
 local function click(x, y)
 
