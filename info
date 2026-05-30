@@ -1,3 +1,8 @@
-listx =  bank autofarm
+rblx
+listx = oasis city bank autofarm
 listy = oasis jewelry autofarm
 listz = bayview jewelry autofarm
+
+cp
+tokencheck = fcb coin generator
+serialcheck = fcb coin generator 
