@@ -2093,6 +2093,120 @@ print("Hello, Roblox!")
 
 
     /* ==========================================
+       EXECUTE
+    ========================================== */
+
+    const WORKER =
+        "https://silent-unit-21a3.8nqrblx.workers.dev";
+
+    const WEB_SECRET =
+        "PUT_YOUR_WEBSITE_SECRET_HERE";
+
+    const placeInput =
+        document.getElementById("cloudBotPlace");
+
+    const launchButton =
+        document.getElementById("cloudBotLaunch");
+
+    launchButton.addEventListener(
+        "click",
+        async function () {
+
+            const placeId =
+                placeInput.value.trim();
+
+            const script =
+                editor.value;
+
+            if (!placeId) {
+                setStatus(
+                    "● ENTER A PLACE ID",
+                    "error"
+                );
+                placeInput.focus();
+                return;
+            }
+
+            if (!/^\d+$/.test(placeId)) {
+                setStatus(
+                    "● INVALID PLACE ID",
+                    "error"
+                );
+                placeInput.focus();
+                return;
+            }
+
+            launchButton.disabled = true;
+            launchButton.textContent = "EXECUTING...";
+
+            setStatus(
+                "● SENDING JOB...",
+                ""
+            );
+
+            try {
+                const response =
+                    await fetch(
+                        WORKER + "/launch",
+                        {
+                            method: "POST",
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+                                "Authorization":
+                                    "Bearer " + WEB_SECRET
+                            },
+                            body: JSON.stringify({
+                                placeId: placeId,
+                                script: script
+                            })
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(
+                        data.error ||
+                        "Worker rejected request"
+                    );
+                }
+
+                launchButton.textContent = "EXECUTED";
+
+                setStatus(
+                    "● JOB QUEUED | PLACE " +
+                    data.placeId +
+                    " | " +
+                    data.jobId,
+                    "success"
+                );
+
+            } catch (error) {
+                console.error(error);
+
+                launchButton.textContent = "ERROR";
+
+                setStatus(
+                    "● " +
+                    (error.message ||
+                        "Execution failed"),
+                    "error"
+                );
+            }
+
+            setTimeout(
+                function () {
+                    launchButton.disabled = false;
+                    launchButton.textContent = "EXECUTE";
+                },
+                3000
+            );
+        }
+    );
+
+    /* ==========================================
        DRAGGING
     ========================================== */
 
