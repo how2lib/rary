@@ -1,0 +1,2298 @@
+<div id="cloudBotLauncher">
+
+<style>
+
+#cloudBotLauncher {
+    width: 100%;
+    max-width: 1050px;
+    margin: 35px auto;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #ddd;
+    position: relative;
+}
+
+#cloudBotLauncher * {
+    box-sizing: border-box;
+}
+
+/* ================================
+   WINDOW
+================================ */
+
+.cloud-editor {
+    overflow: hidden;
+    border: 1px solid #292929;
+    border-radius: 10px;
+    background: #0b0b0b;
+    box-shadow:
+        0 15px 40px rgba(0,0,0,.35),
+        inset 0 1px rgba(255,255,255,.03);
+}
+
+/* ================================
+   TOP BAR
+================================ */
+
+.cloud-topbar {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    background: #111;
+    border-bottom: 1px solid #252525;
+
+    cursor: grab;
+    user-select: none;
+}
+
+.cloud-topbar:active {
+    cursor: grabbing;
+}
+
+.cloud-dots {
+    display: flex;
+    gap: 6px;
+    margin-right: 14px;
+}
+
+.cloud-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #333;
+}
+
+.cloud-title {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px;
+    color: #888;
+}
+
+.cloud-title span {
+    color: #bbb;
+}
+
+/* ================================
+   ADD BOT
+================================ */
+
+#cloudBotAdd {
+    margin-left: auto;
+
+    height: 28px;
+    padding: 0 12px;
+
+    border: 1px solid #333;
+    border-radius: 5px;
+
+    background: #181818;
+    color: #aaa;
+
+    font-family:
+        Consolas,
+        "Courier New",
+        monospace;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        background .15s,
+        border-color .15s,
+        color .15s;
+}
+
+#cloudBotAdd:hover {
+    background: #242424;
+    border-color: #555;
+    color: #fff;
+}
+
+/* ================================
+   MAIN LAYOUT
+================================ */
+
+.cloud-main {
+    display: flex;
+    min-height: 500px;
+}
+
+/* ================================
+   SCRIPT SIDEBAR
+================================ */
+
+.cloud-sidebar {
+    width: 210px;
+    flex-shrink: 0;
+
+    background: #0d0d0d;
+    border-right: 1px solid #202020;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.cloud-sidebar-head {
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 10px;
+
+    border-bottom: 1px solid #202020;
+
+    font-family: Consolas, monospace;
+    font-size: 10px;
+    font-weight: 700;
+
+    color: #666;
+
+    text-transform: uppercase;
+    letter-spacing: .7px;
+}
+
+#cloudNewScript {
+    margin-left: auto;
+
+    width: 25px;
+    height: 25px;
+
+    border: 1px solid #303030;
+    border-radius: 5px;
+
+    background: #171717;
+    color: #aaa;
+
+    font-size: 16px;
+    line-height: 20px;
+
+    cursor: pointer;
+}
+
+#cloudNewScript:hover {
+    background: #242424;
+    color: #fff;
+    border-color: #4b4b4b;
+}
+
+.cloud-script-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 7px;
+}
+
+.cloud-script-item {
+    width: 100%;
+    min-height: 35px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 8px;
+
+    margin-bottom: 3px;
+
+    border: 1px solid transparent;
+    border-radius: 5px;
+
+    background: transparent;
+    color: #777;
+
+    font-family: Consolas, monospace;
+    font-size: 11px;
+
+    cursor: pointer;
+
+    transition: .12s;
+}
+
+.cloud-script-item:hover {
+    background: #151515;
+    color: #bbb;
+}
+
+.cloud-script-item.active {
+    background: #1a1a1a;
+    border-color: #292929;
+    color: #ddd;
+}
+
+.cloud-script-icon {
+    margin-right: 8px;
+    color: #666;
+}
+
+.cloud-script-name {
+    flex: 1;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cloud-script-delete {
+    display: none;
+
+    width: 20px;
+    height: 20px;
+
+    border: 0;
+    background: transparent;
+
+    color: #666;
+
+    cursor: pointer;
+}
+
+.cloud-script-item:hover .cloud-script-delete {
+    display: block;
+}
+
+.cloud-script-delete:hover {
+    color: #e06c75;
+}
+
+/* ================================
+   EDITOR SIDE
+================================ */
+
+.cloud-editor-main {
+    flex: 1;
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+/* ================================
+   TABS
+================================ */
+
+.cloud-tabs {
+    height: 38px;
+
+    display: flex;
+    align-items: stretch;
+
+    background: #0b0b0b;
+    border-bottom: 1px solid #202020;
+
+    overflow-x: auto;
+}
+
+.cloud-tab {
+    min-width: 130px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 13px;
+
+    border-right: 1px solid #202020;
+
+    color: #777;
+
+    font-family: Consolas, monospace;
+    font-size: 11px;
+
+    white-space: nowrap;
+}
+
+.cloud-tab.active {
+    background: #111;
+    color: #ccc;
+}
+
+.cloud-tab-dot {
+    width: 6px;
+    height: 6px;
+
+    margin-right: 8px;
+
+    border-radius: 50%;
+
+    background: #666;
+}
+
+/* ================================
+   TOOLBAR
+================================ */
+
+.cloud-toolbar {
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+
+    padding: 8px 10px;
+
+    background: #0e0e0e;
+    border-bottom: 1px solid #202020;
+}
+
+.cloud-tool {
+    height: 28px;
+
+    padding: 0 9px;
+
+    border: 1px solid #303030;
+    border-radius: 5px;
+
+    background: #171717;
+    color: #999;
+
+    font-family: Consolas, monospace;
+    font-size: 10px;
+
+    cursor: pointer;
+}
+
+.cloud-tool:hover {
+    background: #222;
+    color: #ddd;
+    border-color: #4a4a4a;
+}
+
+.cloud-toolbar-spacer {
+    flex: 1;
+}
+
+/* ================================
+   PLACE ID
+================================ */
+
+#cloudBotPlace {
+    width: calc(100% - 20px);
+    height: 38px;
+
+    margin: 10px;
+
+    padding: 0 12px;
+
+    border: 1px solid #292929;
+    border-radius: 5px;
+
+    background: #101010;
+    color: #ddd;
+
+    outline: none;
+
+    font-family:
+        Consolas,
+        "Courier New",
+        monospace;
+
+    font-size: 12px;
+}
+
+#cloudBotPlace::placeholder {
+    color: #555;
+}
+
+#cloudBotPlace:focus {
+    border-color: #4a4a4a;
+    background: #121212;
+}
+
+/* ================================
+   CODE EDITOR
+================================ */
+
+.cloud-code-wrap {
+    display: flex;
+
+    flex: 1;
+
+    margin: 0 10px 10px;
+
+    min-height: 330px;
+
+    border: 1px solid #292929;
+    border-radius: 5px;
+
+    background: #090909;
+
+    overflow: hidden;
+}
+
+.cloud-lines {
+    width: 46px;
+
+    flex-shrink: 0;
+
+    padding: 14px 9px;
+
+    text-align: right;
+
+    background: #0d0d0d;
+    border-right: 1px solid #202020;
+
+    color: #3f3f3f;
+
+    font-family:
+        Consolas,
+        "Courier New",
+        monospace;
+
+    font-size: 13px;
+    line-height: 1.55;
+
+    user-select: none;
+
+    overflow: hidden;
+}
+
+#cloudBotScript {
+    flex: 1;
+
+    width: 100%;
+    min-height: 330px;
+
+    padding: 14px;
+
+    resize: vertical;
+
+    border: none;
+    outline: none;
+
+    background: #090909;
+    color: #d4d4d4;
+
+    font-family:
+        Consolas,
+        "Courier New",
+        monospace;
+
+    font-size: 13px;
+    line-height: 1.55;
+
+    tab-size: 4;
+
+    white-space: pre;
+}
+
+#cloudBotScript::placeholder {
+    color: #3f3f3f;
+}
+
+/* ================================
+   BOTTOM
+================================ */
+
+.cloud-bottom {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 10px;
+
+    background: #0e0e0e;
+    border-top: 1px solid #202020;
+}
+
+#cloudBotStatus {
+    flex: 1;
+
+    min-width: 0;
+
+    color: #666;
+
+    font-family:
+        Consolas,
+        "Courier New",
+        monospace;
+
+    font-size: 11px;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#cloudBotStatus.success {
+    color: #72d572;
+}
+
+#cloudBotStatus.error {
+    color: #e06c75;
+}
+
+#cloudBotLaunch {
+    height: 38px;
+
+    padding: 0 22px;
+
+    border: 1px solid #333;
+    border-radius: 6px;
+
+    background: #181818;
+    color: #ddd;
+
+    font-family:
+        Consolas,
+        "Courier New",
+        monospace;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+#cloudBotLaunch:hover {
+    background: #222;
+    border-color: #555;
+}
+
+#cloudBotLaunch:disabled {
+    opacity: .45;
+    cursor: default;
+}
+
+/* ================================
+   EMPTY STATE
+================================ */
+
+.cloud-empty {
+    padding: 20px;
+
+    text-align: center;
+
+    color: #444;
+
+    font-family: Consolas, monospace;
+    font-size: 10px;
+}
+
+/* ================================
+   MOBILE
+================================ */
+
+@media(max-width:700px) {
+
+    .cloud-sidebar {
+        width: 150px;
+    }
+
+    .cloud-toolbar {
+        overflow-x: auto;
+    }
+
+    .cloud-tool {
+        flex-shrink: 0;
+    }
+
+}
+
+@media(max-width:550px) {
+
+    .cloud-main {
+        flex-direction: column;
+    }
+
+    .cloud-sidebar {
+        width: 100%;
+        max-height: 150px;
+        border-right: 0;
+        border-bottom: 1px solid #202020;
+    }
+
+    .cloud-script-list {
+        display: flex;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    .cloud-script-item {
+        min-width: 130px;
+        margin-right: 4px;
+    }
+
+}
+
+</style>
+
+
+<div class="cloud-editor">
+
+    <!-- ============================
+         TOP BAR
+    ============================= -->
+
+    <div
+        class="cloud-topbar"
+        id="cloudBotDragHandle"
+    >
+
+        <div class="cloud-dots">
+
+            <div class="cloud-dot"></div>
+            <div class="cloud-dot"></div>
+            <div class="cloud-dot"></div>
+
+        </div>
+
+        <div class="cloud-title">
+            <span>Cloud</span> Executor
+        </div>
+
+        <button
+            id="cloudBotAdd"
+            type="button"
+        >
+            ADD BOT
+        </button>
+
+    </div>
+
+
+    <!-- ============================
+         MAIN
+    ============================= -->
+
+    <div class="cloud-main">
+
+
+        <!-- ========================
+             SCRIPT SIDEBAR
+        ========================= -->
+
+        <aside class="cloud-sidebar">
+
+            <div class="cloud-sidebar-head">
+
+                Scripts
+
+                <button
+                    id="cloudNewScript"
+                    type="button"
+                    title="New Script"
+                >
+                    +
+                </button>
+
+            </div>
+
+            <div
+                class="cloud-script-list"
+                id="cloudScriptList"
+            ></div>
+
+        </aside>
+
+
+        <!-- ========================
+             EDITOR
+        ========================= -->
+
+        <main class="cloud-editor-main">
+
+
+            <!-- TABS -->
+
+            <div
+                class="cloud-tabs"
+                id="cloudTabs"
+            ></div>
+
+
+            <!-- TOOLBAR -->
+
+            <div class="cloud-toolbar">
+
+                <button
+                    class="cloud-tool"
+                    id="cloudSave"
+                    type="button"
+                >
+                    SAVE
+                </button>
+
+                <button
+                    class="cloud-tool"
+                    id="cloudCopy"
+                    type="button"
+                >
+                    COPY
+                </button>
+
+                <button
+                    class="cloud-tool"
+                    id="cloudDownload"
+                    type="button"
+                >
+                    DOWNLOAD
+                </button>
+
+                <button
+                    class="cloud-tool"
+                    id="cloudImport"
+                    type="button"
+                >
+                    IMPORT
+                </button>
+
+                <button
+                    class="cloud-tool"
+                    id="cloudRename"
+                    type="button"
+                >
+                    RENAME
+                </button>
+
+                <button
+                    class="cloud-tool"
+                    id="cloudClear"
+                    type="button"
+                >
+                    CLEAR
+                </button>
+
+                <input
+                    id="cloudFileInput"
+                    type="file"
+                    accept=".lua,.txt"
+                    style="display:none"
+                >
+
+                <div class="cloud-toolbar-spacer"></div>
+
+            </div>
+
+
+            <!-- PLACE -->
+
+            <input
+                id="cloudBotPlace"
+                type="text"
+                inputmode="numeric"
+                placeholder="Enter Roblox Place ID..."
+            >
+
+
+            <!-- CODE -->
+
+            <div class="cloud-code-wrap">
+
+                <div
+                    class="cloud-lines"
+                    id="cloudBotLines"
+                >
+                    1
+                </div>
+
+                <textarea
+                    id="cloudBotScript"
+                    spellcheck="false"
+                    autocomplete="off"
+                    autocorrect="off"
+                    autocapitalize="off"
+                    placeholder="-- start writing your Lua script..."
+                ></textarea>
+
+            </div>
+
+
+            <!-- BOTTOM -->
+
+            <div class="cloud-bottom">
+
+                <div id="cloudBotStatus">
+                    ● READY
+                </div>
+
+                <button
+                    id="cloudBotLaunch"
+                    type="button"
+                >
+                    EXECUTE
+                </button>
+
+            </div>
+
+        </main>
+
+    </div>
+
+</div>
+
+
+<script>
+
+(function () {
+
+    "use strict";
+
+
+    /* ==========================================
+       STORAGE
+    ========================================== */
+
+    const STORAGE_KEY =
+        "cloud_executor_scripts_v2";
+
+
+    let scripts = [];
+
+    let activeScriptId = null;
+
+
+    /* ==========================================
+       ELEMENTS
+    ========================================== */
+
+    const scriptList =
+        document.getElementById(
+            "cloudScriptList"
+        );
+
+    const tabs =
+        document.getElementById(
+            "cloudTabs"
+        );
+
+    const editor =
+        document.getElementById(
+            "cloudBotScript"
+        );
+
+    const lines =
+        document.getElementById(
+            "cloudBotLines"
+        );
+
+    const status =
+        document.getElementById(
+            "cloudBotStatus"
+        );
+
+    const newScriptButton =
+        document.getElementById(
+            "cloudNewScript"
+        );
+
+    const saveButton =
+        document.getElementById(
+            "cloudSave"
+        );
+
+    const copyButton =
+        document.getElementById(
+            "cloudCopy"
+        );
+
+    const downloadButton =
+        document.getElementById(
+            "cloudDownload"
+        );
+
+    const importButton =
+        document.getElementById(
+            "cloudImport"
+        );
+
+    const renameButton =
+        document.getElementById(
+            "cloudRename"
+        );
+
+    const clearButton =
+        document.getElementById(
+            "cloudClear"
+        );
+
+    const fileInput =
+        document.getElementById(
+            "cloudFileInput"
+        );
+
+    const addBot =
+        document.getElementById(
+            "cloudBotAdd"
+        );
+
+
+    /* ==========================================
+       ID
+    ========================================== */
+
+    function createId() {
+
+        return (
+            Date.now().toString(36) +
+            "_" +
+            Math.random()
+                .toString(36)
+                .slice(2)
+        );
+
+    }
+
+
+    /* ==========================================
+       DEFAULT SCRIPT
+    ========================================== */
+
+    function defaultScript() {
+
+        return {
+
+            id: createId(),
+
+            name: "script.lua",
+
+            code:
+`-- Cloud
+
+print("Hello, Roblox!")
+
+`
+
+        };
+
+    }
+
+
+    /* ==========================================
+       LOAD
+    ========================================== */
+
+    function loadScripts() {
+
+        try {
+
+            const saved =
+                localStorage.getItem(
+                    STORAGE_KEY
+                );
+
+            if (!saved) {
+
+                scripts = [
+                    defaultScript()
+                ];
+
+                activeScriptId =
+                    scripts[0].id;
+
+                saveScripts();
+
+                return;
+
+            }
+
+            const data =
+                JSON.parse(saved);
+
+            if (
+                !data ||
+                !Array.isArray(
+                    data.scripts
+                ) ||
+                !data.scripts.length
+            ) {
+
+                throw new Error(
+                    "Invalid saved data"
+                );
+
+            }
+
+            scripts =
+                data.scripts;
+
+            activeScriptId =
+                data.activeScriptId;
+
+            if (
+                !scripts.some(
+                    function (script) {
+                        return script.id ===
+                            activeScriptId;
+                    }
+                )
+            ) {
+
+                activeScriptId =
+                    scripts[0].id;
+
+            }
+
+        } catch (error) {
+
+            console.warn(
+                "Cloud storage reset:",
+                error
+            );
+
+            scripts = [
+                defaultScript()
+            ];
+
+            activeScriptId =
+                scripts[0].id;
+
+        }
+
+    }
+
+
+    /* ==========================================
+       SAVE
+    ========================================== */
+
+    function saveScripts() {
+
+        try {
+
+            localStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify({
+
+                    scripts: scripts,
+
+                    activeScriptId:
+                        activeScriptId
+
+                })
+            );
+
+        } catch (error) {
+
+            console.error(
+                "Unable to save Cloud scripts:",
+                error
+            );
+
+            setStatus(
+                "● STORAGE ERROR",
+                "error"
+            );
+
+        }
+
+    }
+
+
+    /* ==========================================
+       ACTIVE SCRIPT
+    ========================================== */
+
+    function getActiveScript() {
+
+        return scripts.find(
+            function (script) {
+
+                return script.id ===
+                    activeScriptId;
+
+            }
+        );
+
+    }
+
+
+    /* ==========================================
+       SAVE CURRENT EDITOR
+    ========================================== */
+
+    function saveCurrentEditor() {
+
+        const active =
+            getActiveScript();
+
+        if (!active) {
+            return;
+        }
+
+        active.code =
+            editor.value;
+
+        saveScripts();
+
+    }
+
+
+    /* ==========================================
+       STATUS
+    ========================================== */
+
+    function setStatus(
+        text,
+        type
+    ) {
+
+        status.textContent =
+            text;
+
+        status.className =
+            type || "";
+
+    }
+
+
+    /* ==========================================
+       LINE NUMBERS
+    ========================================== */
+
+    function updateLines() {
+
+        const count =
+            Math.max(
+                1,
+                editor.value
+                    .split("\n")
+                    .length
+            );
+
+        let output = "";
+
+        for (
+            let i = 1;
+            i <= count;
+            i++
+        ) {
+
+            output += i;
+
+            if (i < count) {
+                output += "<br>";
+            }
+
+        }
+
+        lines.innerHTML =
+            output;
+
+    }
+
+
+    /* ==========================================
+       RENDER SCRIPTS
+    ========================================== */
+
+    function renderScripts() {
+
+        scriptList.innerHTML = "";
+
+        scripts.forEach(
+            function (script) {
+
+                const item =
+                    document.createElement(
+                        "div"
+                    );
+
+                item.className =
+                    "cloud-script-item" +
+                    (
+                        script.id ===
+                        activeScriptId
+                            ? " active"
+                            : ""
+                    );
+
+
+                const icon =
+                    document.createElement(
+                        "span"
+                    );
+
+                icon.className =
+                    "cloud-script-icon";
+
+                icon.textContent =
+                    "◇";
+
+
+                const name =
+                    document.createElement(
+                        "span"
+                    );
+
+                name.className =
+                    "cloud-script-name";
+
+                name.textContent =
+                    script.name;
+
+
+                const deleteButton =
+                    document.createElement(
+                        "button"
+                    );
+
+                deleteButton.className =
+                    "cloud-script-delete";
+
+                deleteButton.type =
+                    "button";
+
+                deleteButton.textContent =
+                    "×";
+
+                deleteButton.title =
+                    "Delete script";
+
+
+                deleteButton.addEventListener(
+                    "click",
+                    function (event) {
+
+                        event.stopPropagation();
+
+                        deleteScript(
+                            script.id
+                        );
+
+                    }
+                );
+
+
+                item.appendChild(icon);
+                item.appendChild(name);
+                item.appendChild(
+                    deleteButton
+                );
+
+
+                item.addEventListener(
+                    "click",
+                    function () {
+
+                        switchScript(
+                            script.id
+                        );
+
+                    }
+                );
+
+
+                scriptList.appendChild(
+                    item
+                );
+
+            }
+        );
+
+    }
+
+
+    /* ==========================================
+       RENDER TAB
+    ========================================== */
+
+    function renderTabs() {
+
+        tabs.innerHTML = "";
+
+        const active =
+            getActiveScript();
+
+        if (!active) {
+            return;
+        }
+
+        const tab =
+            document.createElement(
+                "div"
+            );
+
+        tab.className =
+            "cloud-tab active";
+
+
+        const dot =
+            document.createElement(
+                "span"
+            );
+
+        dot.className =
+            "cloud-tab-dot";
+
+
+        const name =
+            document.createElement(
+                "span"
+            );
+
+        name.textContent =
+            active.name;
+
+
+        tab.appendChild(dot);
+        tab.appendChild(name);
+
+        tabs.appendChild(tab);
+
+    }
+
+
+    /* ==========================================
+       RENDER EDITOR
+    ========================================== */
+
+    function renderEditor() {
+
+        const active =
+            getActiveScript();
+
+        if (!active) {
+
+            editor.value =
+                "";
+
+            updateLines();
+
+            return;
+
+        }
+
+        editor.value =
+            active.code || "";
+
+        updateLines();
+
+    }
+
+
+    /* ==========================================
+       FULL RENDER
+    ========================================== */
+
+    function render() {
+
+        renderScripts();
+
+        renderTabs();
+
+        renderEditor();
+
+    }
+
+
+    /* ==========================================
+       NEW SCRIPT
+    ========================================== */
+
+    function createScript() {
+
+        saveCurrentEditor();
+
+
+        let name =
+            prompt(
+                "Enter script name:",
+                "script" +
+                (scripts.length + 1) +
+                ".lua"
+            );
+
+
+        if (name === null) {
+            return;
+        }
+
+
+        name =
+            name.trim();
+
+
+        if (!name) {
+
+            name =
+                "script" +
+                (scripts.length + 1) +
+                ".lua";
+
+        }
+
+
+        if (
+            !/\.lua$/i.test(name)
+        ) {
+
+            name += ".lua";
+
+        }
+
+
+        const script = {
+
+            id: createId(),
+
+            name: name,
+
+            code:
+`-- ${name}
+
+`
+
+        };
+
+
+        scripts.push(
+            script
+        );
+
+
+        activeScriptId =
+            script.id;
+
+
+        saveScripts();
+
+        render();
+
+        editor.focus();
+
+        setStatus(
+            "● NEW SCRIPT",
+            "success"
+        );
+
+    }
+
+
+    /* ==========================================
+       SWITCH SCRIPT
+    ========================================== */
+
+    function switchScript(id) {
+
+        saveCurrentEditor();
+
+        activeScriptId = id;
+
+        saveScripts();
+
+        render();
+
+        editor.focus();
+
+        setStatus(
+            "● SCRIPT LOADED",
+            "success"
+        );
+
+    }
+
+
+    /* ==========================================
+       DELETE SCRIPT
+    ========================================== */
+
+    function deleteScript(id) {
+
+        if (scripts.length <= 1) {
+
+            alert(
+                "Cloud needs at least one script."
+            );
+
+            return;
+
+        }
+
+
+        const script =
+            scripts.find(
+                function (item) {
+                    return item.id === id;
+                }
+            );
+
+
+        if (!script) {
+            return;
+        }
+
+
+        const confirmed =
+            confirm(
+                'Delete "' +
+                script.name +
+                '"?'
+            );
+
+
+        if (!confirmed) {
+            return;
+        }
+
+
+        scripts =
+            scripts.filter(
+                function (item) {
+                    return item.id !== id;
+                }
+            );
+
+
+        if (
+            activeScriptId === id
+        ) {
+
+            activeScriptId =
+                scripts[0].id;
+
+        }
+
+
+        saveScripts();
+
+        render();
+
+        setStatus(
+            "● SCRIPT DELETED"
+        );
+
+    }
+
+
+    /* ==========================================
+       RENAME
+    ========================================== */
+
+    function renameScript() {
+
+        const active =
+            getActiveScript();
+
+        if (!active) {
+            return;
+        }
+
+
+        let name =
+            prompt(
+                "Enter new script name:",
+                active.name
+            );
+
+
+        if (name === null) {
+            return;
+        }
+
+
+        name =
+            name.trim();
+
+
+        if (!name) {
+            return;
+        }
+
+
+        if (
+            !/\.lua$/i.test(name)
+        ) {
+
+            name += ".lua";
+
+        }
+
+
+        active.name =
+            name;
+
+
+        saveScripts();
+
+        render();
+
+        setStatus(
+            "● RENAMED",
+            "success"
+        );
+
+    }
+
+
+    /* ==========================================
+       SAVE BUTTON
+    ========================================== */
+
+    saveButton.addEventListener(
+        "click",
+        function () {
+
+            saveCurrentEditor();
+
+            renderScripts();
+            renderTabs();
+
+            setStatus(
+                "● SAVED LOCALLY",
+                "success"
+            );
+
+        }
+    );
+
+
+    /* ==========================================
+       AUTO SAVE
+    ========================================== */
+
+    let saveTimer = null;
+
+
+    editor.addEventListener(
+        "input",
+        function () {
+
+            const active =
+                getActiveScript();
+
+            if (!active) {
+                return;
+            }
+
+
+            active.code =
+                editor.value;
+
+
+            updateLines();
+
+
+            setStatus(
+                "● UNSAVED CHANGES"
+            );
+
+
+            clearTimeout(
+                saveTimer
+            );
+
+
+            saveTimer =
+                setTimeout(
+                    function () {
+
+                        saveScripts();
+
+                        setStatus(
+                            "● SAVED LOCALLY",
+                            "success"
+                        );
+
+                    },
+                    500
+                );
+
+        }
+    );
+
+
+    /* ==========================================
+       CTRL + S
+    ========================================== */
+
+    editor.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                (event.ctrlKey ||
+                 event.metaKey) &&
+                event.key.toLowerCase() === "s"
+            ) {
+
+                event.preventDefault();
+
+                saveCurrentEditor();
+
+                setStatus(
+                    "● SAVED LOCALLY",
+                    "success"
+                );
+
+            }
+
+        }
+    );
+
+
+    /* ==========================================
+       TAB INSERTION
+    ========================================== */
+
+    editor.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key !== "Tab"
+            ) {
+                return;
+            }
+
+
+            event.preventDefault();
+
+
+            const start =
+                editor.selectionStart;
+
+            const end =
+                editor.selectionEnd;
+
+
+            const value =
+                editor.value;
+
+
+            editor.value =
+                value.substring(
+                    0,
+                    start
+                ) +
+                "    " +
+                value.substring(
+                    end
+                );
+
+
+            editor.selectionStart =
+                editor.selectionEnd =
+                    start + 4;
+
+
+            editor.dispatchEvent(
+                new Event("input")
+            );
+
+        }
+    );
+
+
+    /* ==========================================
+       SCROLL LINE NUMBERS
+    ========================================== */
+
+    editor.addEventListener(
+        "scroll",
+        function () {
+
+            lines.scrollTop =
+                editor.scrollTop;
+
+        }
+    );
+
+
+    /* ==========================================
+       COPY
+    ========================================== */
+
+    copyButton.addEventListener(
+        "click",
+        async function () {
+
+            try {
+
+                await navigator.clipboard
+                    .writeText(
+                        editor.value
+                    );
+
+                setStatus(
+                    "● COPIED",
+                    "success"
+                );
+
+            } catch (error) {
+
+                editor.select();
+
+                document.execCommand(
+                    "copy"
+                );
+
+                editor.setSelectionRange(
+                    editor.value.length,
+                    editor.value.length
+                );
+
+                setStatus(
+                    "● COPIED",
+                    "success"
+                );
+
+            }
+
+        }
+    );
+
+
+    /* ==========================================
+       DOWNLOAD
+    ========================================== */
+
+    downloadButton.addEventListener(
+        "click",
+        function () {
+
+            const active =
+                getActiveScript();
+
+            if (!active) {
+                return;
+            }
+
+
+            saveCurrentEditor();
+
+
+            const blob =
+                new Blob(
+                    [active.code],
+                    {
+                        type:
+                            "text/plain;charset=utf-8"
+                    }
+                );
+
+
+            const url =
+                URL.createObjectURL(
+                    blob
+                );
+
+
+            const link =
+                document.createElement(
+                    "a"
+                );
+
+
+            link.href =
+                url;
+
+            link.download =
+                active.name;
+
+
+            document.body.appendChild(
+                link
+            );
+
+            link.click();
+
+            link.remove();
+
+
+            URL.revokeObjectURL(
+                url
+            );
+
+
+            setStatus(
+                "● DOWNLOADED",
+                "success"
+            );
+
+        }
+    );
+
+
+    /* ==========================================
+       IMPORT
+    ========================================== */
+
+    importButton.addEventListener(
+        "click",
+        function () {
+
+            fileInput.value = "";
+
+            fileInput.click();
+
+        }
+    );
+
+
+    fileInput.addEventListener(
+        "change",
+        function () {
+
+            const file =
+                fileInput.files[0];
+
+            if (!file) {
+                return;
+            }
+
+
+            const reader =
+                new FileReader();
+
+
+            reader.onload =
+                function () {
+
+                    saveCurrentEditor();
+
+
+                    let name =
+                        file.name;
+
+
+                    if (
+                        !/\.lua$/i.test(name)
+                    ) {
+
+                        name += ".lua";
+
+                    }
+
+
+                    const imported = {
+
+                        id: createId(),
+
+                        name: name,
+
+                        code:
+                            reader.result || ""
+
+                    };
+
+
+                    scripts.push(
+                        imported
+                    );
+
+
+                    activeScriptId =
+                        imported.id;
+
+
+                    saveScripts();
+
+                    render();
+
+
+                    setStatus(
+                        "● IMPORTED",
+                        "success"
+                    );
+
+                };
+
+
+            reader.readAsText(
+                file
+            );
+
+        }
+    );
+
+
+    /* ==========================================
+       CLEAR
+    ========================================== */
+
+    clearButton.addEventListener(
+        "click",
+        function () {
+
+            if (!editor.value) {
+                return;
+            }
+
+
+            if (
+                !confirm(
+                    "Clear this script?"
+                )
+            ) {
+                return;
+            }
+
+
+            editor.value =
+                "";
+
+
+            const active =
+                getActiveScript();
+
+
+            if (active) {
+
+                active.code =
+                    "";
+
+            }
+
+
+            saveScripts();
+
+            updateLines();
+
+
+            setStatus(
+                "● CLEARED",
+                "success"
+            );
+
+
+            editor.focus();
+
+        }
+    );
+
+
+    /* ==========================================
+       NEW SCRIPT BUTTON
+    ========================================== */
+
+    newScriptButton.addEventListener(
+        "click",
+        createScript
+    );
+
+
+    /* ==========================================
+       ADD BOT
+    ========================================== */
+
+    addBot.addEventListener(
+        "click",
+        function (event) {
+
+            event.stopPropagation();
+
+            window.open(
+                "https://www.roblox.com/users/11525347845/profile",
+                "_blank",
+                "noopener,noreferrer"
+            );
+
+        }
+    );
+
+
+    /* ==========================================
+       DRAGGING
+    ========================================== */
+
+    const launcher =
+        document.getElementById(
+            "cloudBotLauncher"
+        );
+
+    const dragHandle =
+        document.getElementById(
+            "cloudBotDragHandle"
+        );
+
+
+    let dragging = false;
+
+    let startX = 0;
+    let startY = 0;
+
+    let startLeft = 0;
+    let startTop = 0;
+
+
+    dragHandle.addEventListener(
+        "mousedown",
+        function (event) {
+
+            if (
+                event.button !== 0
+            ) {
+                return;
+            }
+
+
+            if (
+                event.target.closest(
+                    "button"
+                )
+            ) {
+                return;
+            }
+
+
+            const rect =
+                launcher.getBoundingClientRect();
+
+
+            dragging = true;
+
+
+            startX =
+                event.clientX;
+
+            startY =
+                event.clientY;
+
+
+            startLeft =
+                rect.left;
+
+            startTop =
+                rect.top;
+
+
+            launcher.style.position =
+                "fixed";
+
+            launcher.style.left =
+                rect.left + "px";
+
+            launcher.style.top =
+                rect.top + "px";
+
+            launcher.style.margin =
+                "0";
+
+            launcher.style.width =
+                rect.width + "px";
+
+
+            event.preventDefault();
+
+        }
+    );
+
+
+    document.addEventListener(
+        "mousemove",
+        function (event) {
+
+            if (!dragging) {
+                return;
+            }
+
+
+            if (
+                (event.buttons & 1) !== 1
+            ) {
+
+                dragging = false;
+
+                return;
+
+            }
+
+
+            const deltaX =
+                event.clientX -
+                startX;
+
+            const deltaY =
+                event.clientY -
+                startY;
+
+
+            let newLeft =
+                startLeft +
+                deltaX;
+
+            let newTop =
+                startTop +
+                deltaY;
+
+
+            const rect =
+                launcher.getBoundingClientRect();
+
+
+            const margin = 10;
+
+
+            const maxLeft =
+                window.innerWidth -
+                rect.width -
+                margin;
+
+
+            const maxTop =
+                window.innerHeight -
+                rect.height -
+                margin;
+
+
+            newLeft =
+                Math.max(
+                    margin,
+                    Math.min(
+                        newLeft,
+                        maxLeft
+                    )
+                );
+
+
+            newTop =
+                Math.max(
+                    margin,
+                    Math.min(
+                        newTop,
+                        maxTop
+                    )
+                );
+
+
+            launcher.style.left =
+                newLeft + "px";
+
+            launcher.style.top =
+                newTop + "px";
+
+        }
+    );
+
+
+    document.addEventListener(
+        "mouseup",
+        function (event) {
+
+            if (
+                event.button === 0
+            ) {
+
+                dragging = false;
+
+            }
+
+        }
+    );
+
+
+    window.addEventListener(
+        "blur",
+        function () {
+
+            dragging = false;
+
+        }
+    );
+
+
+    /* ==========================================
+       INITIALIZE
+    ========================================== */
+
+    loadScripts();
+
+    render();
+
+    updateLines();
+
+})();
+
+</script>
+
+</div>
