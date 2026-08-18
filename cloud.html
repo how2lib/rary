@@ -7,7 +7,7 @@
     max-width: 1050px;
     margin: 35px auto;
     font-family: Arial, Helvetica, sans-serif;
-    color: #ddd;
+    color: var(--cloud-text);
     position: relative;
 }
 
@@ -16,14 +16,240 @@
 }
 
 /* ================================
+   CLOUD THEMES
+================================ */
+
+#cloudBotLauncher {
+    --cloud-bg: #0b0b0b;
+    --cloud-panel: #0d0d0d;
+    --cloud-panel-2: #111;
+    --cloud-panel-3: #0e0e0e;
+    --cloud-border: #292929;
+    --cloud-border-soft: #202020;
+    --cloud-input: #101010;
+    --cloud-input-focus: #121212;
+    --cloud-button: #181818;
+    --cloud-button-hover: #242424;
+    --cloud-text: #ddd;
+    --cloud-muted: #777;
+    --cloud-dim: #555;
+    --cloud-accent: #888;
+    --cloud-success: #72d572;
+    --cloud-error: #e06c75;
+}
+
+#cloudBotLauncher[data-theme="midnight"] {
+    --cloud-bg: #080b12;
+    --cloud-panel: #0b1019;
+    --cloud-panel-2: #0f1520;
+    --cloud-panel-3: #0d131d;
+    --cloud-border: #202b3a;
+    --cloud-border-soft: #182231;
+    --cloud-input: #0c121b;
+    --cloud-input-focus: #101923;
+    --cloud-button: #111a25;
+    --cloud-button-hover: #192535;
+    --cloud-text: #dce7f5;
+    --cloud-muted: #718096;
+    --cloud-dim: #4d5b6d;
+    --cloud-accent: #8ab4f8;
+}
+
+#cloudBotLauncher[data-theme="slate"] {
+    --cloud-bg: #171a1f;
+    --cloud-panel: #1b2027;
+    --cloud-panel-2: #222831;
+    --cloud-panel-3: #1f252d;
+    --cloud-border: #343c47;
+    --cloud-border-soft: #2b333e;
+    --cloud-input: #181d24;
+    --cloud-input-focus: #202731;
+    --cloud-button: #252c35;
+    --cloud-button-hover: #303946;
+    --cloud-text: #e5e7eb;
+    --cloud-muted: #9aa3af;
+    --cloud-dim: #697384;
+    --cloud-accent: #c0c8d4;
+}
+
+#cloudBotLauncher[data-theme="purple"] {
+    --cloud-bg: #0e0a16;
+    --cloud-panel: #120d1c;
+    --cloud-panel-2: #191125;
+    --cloud-panel-3: #160f20;
+    --cloud-border: #332346;
+    --cloud-border-soft: #281b38;
+    --cloud-input: #100b18;
+    --cloud-input-focus: #171022;
+    --cloud-button: #1b1227;
+    --cloud-button-hover: #291a3a;
+    --cloud-text: #eee5fa;
+    --cloud-muted: #9b88b0;
+    --cloud-dim: #665477;
+    --cloud-accent: #b78cff;
+}
+
+#cloudBotLauncher[data-theme="emerald"] {
+    --cloud-bg: #07110d;
+    --cloud-panel: #0a1611;
+    --cloud-panel-2: #0e1c16;
+    --cloud-panel-3: #0c1913;
+    --cloud-border: #1c392d;
+    --cloud-border-soft: #173026;
+    --cloud-input: #09130f;
+    --cloud-input-focus: #0d1914;
+    --cloud-button: #102019;
+    --cloud-button-hover: #173026;
+    --cloud-text: #def4e9;
+    --cloud-muted: #719687;
+    --cloud-dim: #4b6b5e;
+    --cloud-accent: #6ee7b7;
+}
+
+#cloudBotLauncher[data-theme="rose"] {
+    --cloud-bg: #14090e;
+    --cloud-panel: #1a0d13;
+    --cloud-panel-2: #241119;
+    --cloud-panel-3: #200f16;
+    --cloud-border: #45202d;
+    --cloud-border-soft: #351923;
+    --cloud-input: #160b10;
+    --cloud-input-focus: #1e0f15;
+    --cloud-button: #241119;
+    --cloud-button-hover: #351923;
+    --cloud-text: #f8e6eb;
+    --cloud-muted: #aa7e8b;
+    --cloud-dim: #765662;
+    --cloud-accent: #fb8da8;
+}
+
+
+/* ================================
+   CUSTOM IMAGE THEME
+================================ */
+
+#cloudBotLauncher[data-theme="custom"] {
+    --cloud-bg: #080808;
+    --cloud-panel: rgba(10, 10, 10, 0.78);
+    --cloud-panel-2: rgba(17, 17, 17, 0.82);
+    --cloud-panel-3: rgba(14, 14, 14, 0.80);
+    --cloud-border: rgba(255, 255, 255, 0.14);
+    --cloud-border-soft: rgba(255, 255, 255, 0.10);
+    --cloud-input: rgba(8, 8, 8, 0.72);
+    --cloud-input-focus: rgba(18, 18, 18, 0.78);
+    --cloud-button: rgba(24, 24, 24, 0.78);
+    --cloud-button-hover: rgba(38, 38, 38, 0.88);
+    --cloud-text: #eeeeee;
+    --cloud-muted: #a0a0a0;
+    --cloud-dim: #6f6f6f;
+    --cloud-accent: #bdbdbd;
+}
+
+#cloudBotLauncher[data-theme="custom"]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background-image: var(--cloud-custom-bg);
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    filter: saturate(0.92);
+    transform: scale(1.015);
+}
+
+#cloudBotLauncher[data-theme="custom"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(0, 0, 0, 0.46),
+            rgba(0, 0, 0, 0.64)
+        );
+    pointer-events: none;
+}
+
+#cloudBotLauncher[data-theme="custom"] .cloud-bg-upload {
+    display: flex;
+}
+
+.cloud-bg-upload {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    margin-left: 5px;
+}
+
+#cloudBgUploadBtn,
+#cloudBgClearBtn {
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid var(--cloud-border);
+    border-radius: 5px;
+    background: var(--cloud-button);
+    color: var(--cloud-muted);
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+#cloudBgUploadBtn:hover,
+#cloudBgClearBtn:hover {
+    background: var(--cloud-button-hover);
+    color: var(--cloud-text);
+    border-color: var(--cloud-accent);
+}
+
+#cloudBgFile {
+    display: none;
+}
+
+/* Theme control */
+.cloud-theme-wrap {
+    margin-left: 6px;
+    position: relative;
+}
+
+#cloudThemeSelect {
+    height: 28px;
+    min-width: 92px;
+    padding: 0 24px 0 9px;
+    border: 1px solid var(--cloud-border);
+    border-radius: 5px;
+    background: var(--cloud-button);
+    color: var(--cloud-muted);
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    outline: none;
+}
+
+#cloudThemeSelect:hover,
+#cloudThemeSelect:focus {
+    background: var(--cloud-button-hover);
+    border-color: var(--cloud-accent);
+    color: var(--cloud-text);
+}
+
+#cloudThemeSelect option {
+    background: var(--cloud-panel-2);
+    color: var(--cloud-text);
+}
+
+/* ================================
    WINDOW
 ================================ */
 
 .cloud-editor {
     overflow: hidden;
-    border: 1px solid #292929;
+    border: 1px solid var(--cloud-border);
     border-radius: 10px;
-    background: #0b0b0b;
+    background: var(--cloud-bg);
     box-shadow:
         0 15px 40px rgba(0,0,0,.35),
         inset 0 1px rgba(255,255,255,.03);
@@ -38,8 +264,8 @@
     display: flex;
     align-items: center;
     padding: 0 14px;
-    background: #111;
-    border-bottom: 1px solid #252525;
+    background: var(--cloud-panel-2);
+    border-bottom: 1px solid var(--cloud-border-soft);
 
     cursor: grab;
     user-select: none;
@@ -65,11 +291,11 @@
 .cloud-title {
     font-family: Consolas, "Courier New", monospace;
     font-size: 12px;
-    color: #888;
+    color: var(--cloud-accent);
 }
 
 .cloud-title span {
-    color: #bbb;
+    color: var(--cloud-text);
 }
 
 /* ================================
@@ -85,8 +311,8 @@
     border: 1px solid #333;
     border-radius: 5px;
 
-    background: #181818;
-    color: #aaa;
+    background: var(--cloud-button);
+    color: var(--cloud-muted);
 
     font-family:
         Consolas,
@@ -105,8 +331,8 @@
 }
 
 #cloudBotAdd:hover {
-    background: #242424;
-    border-color: #555;
+    background: var(--cloud-button-hover);
+    border-color: var(--cloud-dim);
     color: #fff;
 }
 
@@ -132,8 +358,8 @@
     width: 210px;
     flex-shrink: 0;
 
-    background: #0d0d0d;
-    border-right: 1px solid #202020;
+    background: var(--cloud-panel);
+    border-right: 1px solid var(--cloud-border-soft);
 
     display: flex;
     flex-direction: column;
@@ -147,13 +373,13 @@
 
     padding: 0 10px;
 
-    border-bottom: 1px solid #202020;
+    border-bottom: 1px solid var(--cloud-border-soft);
 
     font-family: Consolas, monospace;
     font-size: 10px;
     font-weight: 700;
 
-    color: #666;
+    color: var(--cloud-dim);
 
     text-transform: uppercase;
     letter-spacing: .7px;
@@ -165,11 +391,11 @@
     width: 25px;
     height: 25px;
 
-    border: 1px solid #303030;
+    border: 1px solid var(--cloud-border);
     border-radius: 5px;
 
-    background: #171717;
-    color: #aaa;
+    background: var(--cloud-button);
+    color: var(--cloud-muted);
 
     font-size: 16px;
     line-height: 20px;
@@ -178,7 +404,7 @@
 }
 
 #cloudNewScript:hover {
-    background: #242424;
+    background: var(--cloud-button-hover);
     color: #fff;
     border-color: #4b4b4b;
 }
@@ -204,7 +430,7 @@
     border-radius: 5px;
 
     background: transparent;
-    color: #777;
+    color: var(--cloud-muted);
 
     font-family: Consolas, monospace;
     font-size: 11px;
@@ -215,19 +441,19 @@
 }
 
 .cloud-script-item:hover {
-    background: #151515;
-    color: #bbb;
+    background: var(--cloud-button);
+    color: var(--cloud-text);
 }
 
 .cloud-script-item.active {
-    background: #1a1a1a;
-    border-color: #292929;
-    color: #ddd;
+    background: var(--cloud-panel-2);
+    border-color: var(--cloud-border);
+    color: var(--cloud-text);
 }
 
 .cloud-script-icon {
     margin-right: 8px;
-    color: #666;
+    color: var(--cloud-dim);
 }
 
 .cloud-script-name {
@@ -247,7 +473,7 @@
     border: 0;
     background: transparent;
 
-    color: #666;
+    color: var(--cloud-dim);
 
     cursor: pointer;
 }
@@ -282,8 +508,8 @@
     display: flex;
     align-items: stretch;
 
-    background: #0b0b0b;
-    border-bottom: 1px solid #202020;
+    background: var(--cloud-bg);
+    border-bottom: 1px solid var(--cloud-border-soft);
 
     overflow-x: auto;
 }
@@ -296,9 +522,9 @@
 
     padding: 0 13px;
 
-    border-right: 1px solid #202020;
+    border-right: 1px solid var(--cloud-border-soft);
 
-    color: #777;
+    color: var(--cloud-muted);
 
     font-family: Consolas, monospace;
     font-size: 11px;
@@ -307,8 +533,8 @@
 }
 
 .cloud-tab.active {
-    background: #111;
-    color: #ccc;
+    background: var(--cloud-panel-2);
+    color: var(--cloud-text);
 }
 
 .cloud-tab-dot {
@@ -334,8 +560,8 @@
 
     padding: 8px 10px;
 
-    background: #0e0e0e;
-    border-bottom: 1px solid #202020;
+    background: var(--cloud-panel-3);
+    border-bottom: 1px solid var(--cloud-border-soft);
 }
 
 .cloud-tool {
@@ -343,11 +569,11 @@
 
     padding: 0 9px;
 
-    border: 1px solid #303030;
+    border: 1px solid var(--cloud-border);
     border-radius: 5px;
 
-    background: #171717;
-    color: #999;
+    background: var(--cloud-button);
+    color: var(--cloud-muted);
 
     font-family: Consolas, monospace;
     font-size: 10px;
@@ -356,9 +582,9 @@
 }
 
 .cloud-tool:hover {
-    background: #222;
-    color: #ddd;
-    border-color: #4a4a4a;
+    background: var(--cloud-button-hover);
+    color: var(--cloud-text);
+    border-color: var(--cloud-accent);
 }
 
 .cloud-toolbar-spacer {
@@ -377,11 +603,11 @@
 
     padding: 0 12px;
 
-    border: 1px solid #292929;
+    border: 1px solid var(--cloud-border);
     border-radius: 5px;
 
-    background: #101010;
-    color: #ddd;
+    background: var(--cloud-input);
+    color: var(--cloud-text);
 
     outline: none;
 
@@ -394,12 +620,12 @@
 }
 
 #cloudBotPlace::placeholder {
-    color: #555;
+    color: var(--cloud-dim);
 }
 
 #cloudBotPlace:focus {
-    border-color: #4a4a4a;
-    background: #121212;
+    border-color: var(--cloud-accent);
+    background: var(--cloud-input-focus);
 }
 
 /* ================================
@@ -416,10 +642,10 @@
 
     margin: 0 10px 10px;
 
-    border: 1px solid #292929;
+    border: 1px solid var(--cloud-border);
     border-radius: 5px;
 
-    background: #090909;
+    background: var(--cloud-input);
 
     overflow: hidden;
 }
@@ -433,8 +659,8 @@
 
     text-align: right;
 
-    background: #0d0d0d;
-    border-right: 1px solid #202020;
+    background: var(--cloud-panel);
+    border-right: 1px solid var(--cloud-border-soft);
 
     color: #3f3f3f;
 
@@ -469,7 +695,7 @@
     border: none;
     outline: none;
 
-    background: #090909;
+    background: var(--cloud-input);
     color: #d4d4d4;
 
     font-family:
@@ -501,7 +727,7 @@
 
     padding: 10px;
 
-    background: #0e0e0e;
+    background: var(--cloud-panel-3);
     border-top: 1px solid #202020;
 }
 
@@ -510,7 +736,7 @@
 
     min-width: 0;
 
-    color: #666;
+    color: var(--cloud-dim);
 
     font-family:
         Consolas,
@@ -540,8 +766,8 @@
     border: 1px solid #333;
     border-radius: 6px;
 
-    background: #181818;
-    color: #ddd;
+    background: var(--cloud-button);
+    color: var(--cloud-text);
 
     font-family:
         Consolas,
@@ -555,8 +781,8 @@
 }
 
 #cloudBotLaunch:hover {
-    background: #222;
-    border-color: #555;
+    background: var(--cloud-button-hover);
+    border-color: var(--cloud-dim);
 }
 
 #cloudBotLaunch:disabled {
@@ -609,7 +835,7 @@
         width: 100%;
         max-height: 150px;
         border-right: 0;
-        border-bottom: 1px solid #202020;
+        border-bottom: 1px solid var(--cloud-border-soft);
     }
 
     .cloud-script-list {
@@ -649,6 +875,42 @@
 
         <div class="cloud-title">
             <span>Cloud</span> Executor
+        </div>
+
+        <div class="cloud-theme-wrap">
+            <select id="cloudThemeSelect" aria-label="Cloud theme">
+                <option value="default">DEFAULT</option>
+                <option value="midnight">MIDNIGHT</option>
+                <option value="slate">SLATE</option>
+                <option value="purple">PURPLE</option>
+                <option value="emerald">EMERALD</option>
+                <option value="rose">ROSE</option>
+                <option value="custom">CUSTOM IMAGE</option>
+            </select>
+        </div>
+
+        <div class="cloud-bg-upload">
+            <input
+                id="cloudBgFile"
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+            >
+
+            <button
+                id="cloudBgUploadBtn"
+                type="button"
+                title="Choose a background image"
+            >
+                IMAGE
+            </button>
+
+            <button
+                id="cloudBgClearBtn"
+                type="button"
+                title="Remove custom background"
+            >
+                CLEAR
+            </button>
         </div>
 
         <button
@@ -925,6 +1187,339 @@
         document.getElementById(
             "cloudBotAdd"
         );
+    const launcher =
+        document.getElementById(
+            "cloudBotLauncher"
+        );
+
+
+    /* ==========================================
+       THEMES
+    ========================================== */
+
+    const themeSelect =
+        document.getElementById(
+            "cloudThemeSelect"
+        );
+
+    const THEME_KEY =
+        "cloud_executor_theme_v1";
+
+    const CUSTOM_BG_KEY =
+        "cloud_executor_custom_background_v1";
+
+    const bgFile =
+        document.getElementById(
+            "cloudBgFile"
+        );
+
+    const bgUploadBtn =
+        document.getElementById(
+            "cloudBgUploadBtn"
+        );
+
+    const bgClearBtn =
+        document.getElementById(
+            "cloudBgClearBtn"
+        );
+
+    function applyCustomBackground(dataUrl) {
+
+        if (!dataUrl) {
+            launcher.style.removeProperty(
+                "--cloud-custom-bg"
+            );
+            return;
+        }
+
+        launcher.style.setProperty(
+            "--cloud-custom-bg",
+            "url(" +
+            JSON.stringify(dataUrl) +
+            ")"
+        );
+    }
+
+    function saveCustomBackground(dataUrl) {
+
+        try {
+            if (dataUrl) {
+                localStorage.setItem(
+                    CUSTOM_BG_KEY,
+                    dataUrl
+                );
+            } else {
+                localStorage.removeItem(
+                    CUSTOM_BG_KEY
+                );
+            }
+        } catch (error) {
+            console.warn(
+                "Unable to save Cloud background:",
+                error
+            );
+        }
+    }
+
+    function loadCustomBackground() {
+
+        try {
+            const saved =
+                localStorage.getItem(
+                    CUSTOM_BG_KEY
+                );
+
+            if (saved) {
+                applyCustomBackground(saved);
+            }
+        } catch (error) {
+            console.warn(
+                "Unable to load Cloud background:",
+                error
+            );
+        }
+    }
+
+    function setCustomTheme() {
+        applyTheme("custom");
+    }
+
+    bgUploadBtn.addEventListener(
+        "click",
+        function () {
+            bgFile.click();
+        }
+    );
+
+    bgClearBtn.addEventListener(
+        "click",
+        function () {
+
+            applyCustomBackground(null);
+            saveCustomBackground(null);
+
+            applyTheme("default");
+
+            setStatus(
+                "● CUSTOM BACKGROUND CLEARED",
+                "success"
+            );
+        }
+    );
+
+    bgFile.addEventListener(
+        "change",
+        function () {
+
+            const file =
+                bgFile.files &&
+                bgFile.files[0];
+
+            if (!file) return;
+
+            if (
+                !file.type.startsWith(
+                    "image/"
+                )
+            ) {
+                setStatus(
+                    "● INVALID IMAGE",
+                    "error"
+                );
+                return;
+            }
+
+            const reader =
+                new FileReader();
+
+            reader.onload = function () {
+
+                const img =
+                    new Image();
+
+                img.onload = function () {
+
+                    /*
+                     * Resize large images before
+                     * saving them to localStorage.
+                     * This keeps the embed responsive
+                     * and avoids huge storage usage.
+                     */
+                    const maxSize = 2200;
+
+                    let width = img.naturalWidth;
+                    let height = img.naturalHeight;
+
+                    if (
+                        width > maxSize ||
+                        height > maxSize
+                    ) {
+                        const scale =
+                            Math.min(
+                                maxSize / width,
+                                maxSize / height
+                            );
+
+                        width =
+                            Math.round(
+                                width * scale
+                            );
+
+                        height =
+                            Math.round(
+                                height * scale
+                            );
+                    }
+
+                    const canvas =
+                        document.createElement(
+                            "canvas"
+                        );
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx =
+                        canvas.getContext(
+                            "2d"
+                        );
+
+                    ctx.drawImage(
+                        img,
+                        0,
+                        0,
+                        width,
+                        height
+                    );
+
+                    const dataUrl =
+                        canvas.toDataURL(
+                            "image/jpeg",
+                            0.84
+                        );
+
+                    applyCustomBackground(
+                        dataUrl
+                    );
+
+                    saveCustomBackground(
+                        dataUrl
+                    );
+
+                    setCustomTheme();
+
+                    setStatus(
+                        "● CUSTOM BACKGROUND SET",
+                        "success"
+                    );
+                };
+
+                img.onerror = function () {
+                    setStatus(
+                        "● IMAGE COULD NOT BE LOADED",
+                        "error"
+                    );
+                };
+
+                img.src = reader.result;
+            };
+
+            reader.readAsDataURL(file);
+        }
+    );
+
+    function applyTheme(theme) {
+
+        const allowedThemes = [
+            "default",
+            "midnight",
+            "slate",
+            "purple",
+            "emerald",
+            "rose"
+        ];
+
+        if (!allowedThemes.includes(theme)) {
+            theme = "default";
+        }
+
+        launcher.setAttribute(
+            "data-theme",
+            theme
+        );
+
+        themeSelect.value = theme;
+
+        try {
+            localStorage.setItem(
+                THEME_KEY,
+                theme
+            );
+        } catch (error) {
+            console.warn(
+                "Unable to save Cloud theme:",
+                error
+            );
+        }
+
+    }
+
+    function loadTheme() {
+
+        let theme = "default";
+
+        try {
+            theme =
+                localStorage.getItem(
+                    THEME_KEY
+                ) || "default";
+        } catch (error) {
+            theme = "default";
+        }
+
+        let savedCustom = null;
+
+        try {
+            savedCustom =
+                localStorage.getItem(
+                    CUSTOM_BG_KEY
+                );
+        } catch (error) {
+            savedCustom = null;
+        }
+
+        if (
+            theme === "custom" &&
+            !savedCustom
+        ) {
+            theme = "default";
+        }
+
+        applyTheme(theme);
+    }
+
+    themeSelect.addEventListener(
+        "change",
+        function () {
+
+            applyTheme(
+                themeSelect.value
+            );
+
+            if (
+                themeSelect.value === "custom"
+            ) {
+                loadCustomBackground();
+            }
+
+            setStatus(
+                "● THEME: " +
+                themeSelect.value.toUpperCase(),
+                "success"
+            );
+
+        }
+    );
 
 
     /* ==========================================
@@ -2210,10 +2805,6 @@ print("Hello, Roblox!")
        DRAGGING
     ========================================== */
 
-    const launcher =
-        document.getElementById(
-            "cloudBotLauncher"
-        );
 
     const dragHandle =
         document.getElementById(
@@ -2409,6 +3000,8 @@ print("Hello, Roblox!")
     /* ==========================================
        INITIALIZE
     ========================================== */
+
+    loadTheme();
 
     loadScripts();
 
