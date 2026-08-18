@@ -177,6 +177,8 @@
 }
 
 .cloud-bg-upload {
+    position: relative;
+    z-index: 10;
     display: none;
     align-items: center;
     gap: 5px;
@@ -215,6 +217,8 @@
 }
 
 #cloudThemeSelect {
+    position: relative;
+    z-index: 10;
     height: 28px;
     min-width: 92px;
     padding: 0 24px 0 9px;
@@ -2832,9 +2836,15 @@ print("Hello, Roblox!")
             }
 
 
+            /*
+             * Interactive controls in the top bar must
+             * not start the window drag. In particular,
+             * <select> needs the native mouse event so
+             * its dropdown can open normally.
+             */
             if (
                 event.target.closest(
-                    "button"
+                    "button, select, input, .cloud-theme-wrap, .cloud-bg-upload"
                 )
             ) {
                 return;
