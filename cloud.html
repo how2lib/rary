@@ -116,7 +116,12 @@
 
 .cloud-main {
     display: flex;
+
+    height: 500px;
     min-height: 500px;
+    max-height: 500px;
+
+    overflow: hidden;
 }
 
 /* ================================
@@ -405,10 +410,11 @@
     display: flex;
 
     flex: 1;
+    min-width: 0;
+    min-height: 0;
+    height: 0;
 
     margin: 0 10px 10px;
-
-    min-height: 330px;
 
     border: 1px solid #292929;
     border-radius: 5px;
@@ -448,12 +454,17 @@
 #cloudBotScript {
     flex: 1;
 
-    width: 100%;
-    min-height: 330px;
+    width: 0;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
 
     padding: 14px;
 
-    resize: vertical;
+    resize: none;
+
+    overflow-y: auto;
+    overflow-x: auto;
 
     border: none;
     outline: none;
