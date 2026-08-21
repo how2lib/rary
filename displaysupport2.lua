@@ -18,3 +18,4 @@ end
 -- click(100,100) // click(X,Y)
 click(133,1213)
 click(147,1310)
+click(128,1464)
