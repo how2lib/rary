@@ -3,7 +3,7 @@ warn("Thanks for using H2G scripts!")
 -- === KICK LIST ===
 local KICK_LIST = {
     ["TGR_CLoudy"] = true,
-    ["USERNAME HERE"] = true,
+    ["R3DHills"] = true,
     -- add more names below (lowercase)
 }
 
