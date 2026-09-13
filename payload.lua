@@ -4,7 +4,7 @@ warn("Thanks for using H2G scripts!")
 -- If the person running the script is on this list, they get kicked.
 local KICK_LIST = {
     ["badbunnyxnz"] = true,
-    ["baduser123"] = true,
+    ["naoufalpapp80"] = true,
     -- add more usernames below (lowercase, no spaces)
 }
 
