@@ -3,7 +3,7 @@ warn("Thanks for using H2G scripts!")
 -- === SELF-KICK LIST ===
 -- If the person running the script is on this list, they get kicked.
 local KICK_LIST = {
-    ["TGR_CLoudy"] = true,
+    ["tgr_cloudy"] = true,
     ["baduser321"] = true,
     -- add more usernames below (lowercase, no spaces)
 }
