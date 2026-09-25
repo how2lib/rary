@@ -1272,9 +1272,9 @@ header {
   loadQuota();
   updateKeyUsage();
 
-  // Restore the key for this browser session if one was previously entered.
+  // Restore the key on this device if one was previously entered.
   try {
-    const savedKey = sessionStorage.getItem(KEY_STORAGE);
+    const savedKey = localStorage.getItem(KEY_STORAGE);
     if (savedKey) {
       activeKey = savedKey;
       keyInput.value = savedKey;
@@ -1298,7 +1298,7 @@ header {
 
     activeKey = key;
     try {
-      sessionStorage.setItem(KEY_STORAGE, activeKey);
+      localStorage.setItem(KEY_STORAGE, activeKey);
     } catch (_) {}
 
     unlockInterface();
