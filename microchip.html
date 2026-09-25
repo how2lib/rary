@@ -274,6 +274,106 @@ header {
 }
 #send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
+/* ── ATTACHMENTS ── */
+.input-area { position: relative; flex-wrap: wrap; }
+.input-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.attach-btn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--primary5);
+  background: transparent;
+  color: var(--primary3);
+  cursor: pointer;
+  border-radius: 2px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 15px;
+  transition: background var(--trans), color var(--trans), border-color var(--trans);
+}
+.attach-btn:hover {
+  background: var(--dim);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+#file-input { display: none; }
+.attachment-strip {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 0 0 8px 31px;
+}
+.attachment-strip:empty { display: none; }
+.attachment-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 220px;
+  padding: 5px 8px;
+  border: 1px solid var(--primary5);
+  background: var(--bg2);
+  color: var(--primary2);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+.attachment-item img {
+  width: 30px;
+  height: 30px;
+  object-fit: cover;
+  border: 1px solid var(--primary5);
+}
+.attachment-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attachment-remove {
+  border: 0;
+  background: transparent;
+  color: var(--primary3);
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 13px;
+}
+.attachment-remove:hover { color: var(--accent); }
+.drop-active {
+  border-color: var(--accent) !important;
+  background: var(--dim) !important;
+}
+.message-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.message-attachment-image {
+  display: block;
+  max-width: min(360px, 100%);
+  max-height: 300px;
+  border: 1px solid var(--primary5);
+  border-radius: 2px;
+  cursor: pointer;
+}
+.message-attachment-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border: 1px solid var(--primary5);
+  background: var(--bg);
+  color: var(--primary2);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+}
+@media (max-width: 600px) {
+  .attachment-strip { padding-left: 0; }
+  .input-main { width: 100%; }
+}
+
 /* ── INTRO SCREEN ── */
 #intro {
   display: flex;
@@ -870,7 +970,7 @@ header {
     <a
       class="buy-access-btn"
       href="https://shoppy.gg/product/h9ot98P"
-    >BUY ACCESS 🗝</a>
+    >BUY ACCESS</a>
     <div id="key-error" class="key-error"></div>
     <div id="key-usage" class="key-usage">50 / 50 CHATS AVAILABLE · 5 HOUR WINDOW</div>
     <button class="consent-btn" id="consent-yes">INITIATE CONNECTION</button>
@@ -1062,10 +1162,15 @@ header {
   </div>
 
   <!-- INPUT AREA -->
-  <div class="input-area">
-    <div class="prompt-prefix">➤</div>
-    <textarea id="user-input" placeholder="execute command..." rows="1"></textarea>
-    <button id="send-btn">SEND</button>
+  <div class="input-area" id="input-area">
+    <input id="file-input" type="file" multiple accept="image/jpeg,image/png,image/gif,image/webp,.txt,.md,.csv,.json,.js,.ts,.html,.css,.xml,.yaml,.yml,.log,.py,.lua,.luau,.rs,.c,.cpp,.h,.hpp,.java,.cs,.go,.php,.sh,.bat,.ps1,.pdf" />
+    <div class="attachment-strip" id="attachment-strip"></div>
+    <div class="input-main">
+      <div class="prompt-prefix">➤</div>
+      <button class="attach-btn" id="attach-btn" type="button" title="Attach files">+</button>
+      <textarea id="user-input" placeholder="execute command..." rows="1"></textarea>
+      <button id="send-btn">SEND</button>
+    </div>
   </div>
 </div>
 
@@ -1086,6 +1191,10 @@ header {
   const input      = document.getElementById('user-input');
   const sendBtn    = document.getElementById('send-btn');
   const suggsEl    = document.getElementById('suggestions');
+  const inputArea  = document.getElementById('input-area');
+  const fileInput  = document.getElementById('file-input');
+  const attachBtn  = document.getElementById('attach-btn');
+  const attachStrip = document.getElementById('attachment-strip');
 
   const DEEPSEEK_KEY = '';
   const DEEPSEEK_URL = 'https://misty-cloud-81c4.8nqrblx.workers.dev/';
@@ -1206,7 +1315,195 @@ header {
   const history = [];
   let sampleFn = null;
   let loading = false;
-  
+  let pendingAttachments = [];
+
+  const MAX_FILE_BYTES = 12 * 1024 * 1024;
+  const MAX_TOTAL_INLINE_BYTES = 42 * 1024 * 1024;
+  const MAX_ATTACHMENTS = 10;
+  const TEXT_EXTENSIONS = new Set([
+    'txt','md','csv','json','js','ts','html','css','xml','yaml','yml','log',
+    'py','lua','luau','rs','c','cpp','h','hpp','java','cs','go','php','sh','bat','ps1'
+  ]);
+
+  function formatBytes(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function fileExtension(name) {
+    const parts = name.toLowerCase().split('.');
+    return parts.length > 1 ? parts.pop() : '';
+  }
+
+  function readAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error(`Could not read ${file.name}`));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function readAsText(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error(`Could not read ${file.name}`));
+      reader.readAsText(file);
+    });
+  }
+
+  async function extractPdfText(file) {
+    if (!window.pdfjsLib) {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        script.onload = () => {
+          if (window.pdfjsLib) {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+          }
+          resolve();
+        };
+        script.onerror = () => reject(new Error('PDF reader could not be loaded.'));
+        document.head.appendChild(script);
+      });
+    }
+
+    if (!window.pdfjsLib) {
+      throw new Error('PDF reader is unavailable in this browser.');
+    }
+
+    const buffer = await file.arrayBuffer();
+    const pdf = await window.pdfjsLib.getDocument({ data: buffer }).promise;
+    const pages = [];
+
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+      const page = await pdf.getPage(pageNumber);
+      const content = await page.getTextContent();
+      pages.push(content.items.map(item => item.str).join(' '));
+    }
+
+    return pages.join('\n\n');
+  }
+
+  function renderPendingAttachments() {
+    attachStrip.innerHTML = '';
+
+    pendingAttachments.forEach((attachment, index) => {
+      const item = document.createElement('div');
+      item.className = 'attachment-item';
+
+      if (attachment.kind === 'image') {
+        const img = document.createElement('img');
+        img.src = attachment.dataUrl;
+        img.alt = attachment.name;
+        item.appendChild(img);
+      }
+
+      const name = document.createElement('span');
+      name.className = 'attachment-name';
+      name.textContent = `${attachment.name} · ${formatBytes(attachment.size)}`;
+      item.appendChild(name);
+
+      const remove = document.createElement('button');
+      remove.className = 'attachment-remove';
+      remove.type = 'button';
+      remove.textContent = '×';
+      remove.title = 'Remove attachment';
+      remove.addEventListener('click', () => {
+        pendingAttachments.splice(index, 1);
+        renderPendingAttachments();
+      });
+      item.appendChild(remove);
+
+      attachStrip.appendChild(item);
+    });
+  }
+
+  async function addFiles(fileList) {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+
+    for (const file of files) {
+      if (pendingAttachments.length >= MAX_ATTACHMENTS) {
+        alert(`Maximum ${MAX_ATTACHMENTS} attachments per message.`);
+        break;
+      }
+
+      if (file.size > MAX_FILE_BYTES) {
+        alert(`${file.name} is too large. Maximum size is ${formatBytes(MAX_FILE_BYTES)}.`);
+        continue;
+      }
+
+      try {
+        if (file.type.startsWith('image/')) {
+          if (!['image/jpeg','image/png','image/gif','image/webp'].includes(file.type)) {
+            alert(`${file.name}: supported images are JPEG, PNG, GIF, and WebP.`);
+            continue;
+          }
+          const dataUrl = await readAsDataURL(file);
+          pendingAttachments.push({ kind: 'image', name: file.name, size: file.size, mime: file.type, dataUrl });
+        } else if (file.type === 'application/pdf' || fileExtension(file.name) === 'pdf') {
+          const text = await extractPdfText(file);
+          pendingAttachments.push({ kind: 'text', name: file.name, size: file.size, mime: file.type, text, label: 'PDF TEXT' });
+        } else if (TEXT_EXTENSIONS.has(fileExtension(file.name)) || file.type.startsWith('text/')) {
+          const text = await readAsText(file);
+          pendingAttachments.push({ kind: 'text', name: file.name, size: file.size, mime: file.type, text, label: 'TEXT' });
+        } else {
+          alert(`${file.name}: this file type is not supported yet.`);
+        }
+      } catch (error) {
+        alert(error.message || `Could not attach ${file.name}.`);
+      }
+    }
+
+    renderPendingAttachments();
+    fileInput.value = '';
+  }
+
+  function buildUserContent(userText, attachments) {
+    const parts = [];
+    if (userText.trim()) {
+      parts.push({ type: 'text', text: userText.trim() });
+    }
+
+    let inlineBytes = new TextEncoder().encode(userText).byteLength;
+
+    attachments.forEach(attachment => {
+      if (attachment.kind === 'image') {
+        inlineBytes += attachment.dataUrl.length;
+        if (inlineBytes > MAX_TOTAL_INLINE_BYTES) {
+          throw new Error('Attachments are too large for one request. Remove an image and try again.');
+        }
+        parts.push({
+          type: 'image_url',
+          image_url: { url: attachment.dataUrl, detail: 'auto' }
+        });
+      } else {
+        const fileText = `\n\n[ATTACHED FILE: ${attachment.name}]\n${attachment.text}\n[END ATTACHED FILE: ${attachment.name}]`;
+        inlineBytes += fileText.length;
+        if (inlineBytes > MAX_TOTAL_INLINE_BYTES) {
+          throw new Error('Attached text is too large for one request. Remove a file and try again.');
+        }
+        parts.push({ type: 'text', text: fileText });
+      }
+    });
+
+    return parts.length === 1 && parts[0].type === 'text'
+      ? parts[0].text
+      : parts;
+  }
+
+  function attachmentMarkup(attachments) {
+    if (!attachments.length) return '';
+    return `<div class="message-attachments">${attachments.map(attachment => {
+      if (attachment.kind === 'image') {
+        return `<img class="message-attachment-image" src="${attachment.dataUrl}" alt="${escapeHtml(attachment.name)}" title="Open image" />`;
+      }
+      return `<div class="message-attachment-file">▣ ${escapeHtml(attachment.name)}</div>`;
+    }).join('')}</div>`;
+  }
 
   function escapeHtml(str) {
     return str
@@ -1231,7 +1528,7 @@ header {
     return text;
   }
 
-  function addMessage(role, text, isTyping = false) {
+  function addMessage(role, text, isTyping = false, attachments = []) {
     // switch from intro to messages view
     if (introEl && !introEl.classList.contains('hidden')) {
       introEl.classList.add('hidden');
@@ -1254,7 +1551,7 @@ header {
         <span class="typing-dot"></span>
         <span class="typing-dot"></span>`;
     } else {
-      bubble.innerHTML = renderMarkdown(text);
+      bubble.innerHTML = attachmentMarkup(attachments) + renderMarkdown(text || '');
     }
 
     row.appendChild(avatar);
@@ -1264,8 +1561,8 @@ header {
     return { row, bubble };
   }
 
-  async function send(userText) {
-    if (!userText.trim() || loading) return;
+  async function send(userText, attachments = []) {
+    if ((!userText.trim() && !attachments.length) || loading) return;
 
     if (!activeKey) {
       consentEl.classList.remove('hidden');
@@ -1284,8 +1581,19 @@ header {
     sendBtn.disabled = true;
     suggsEl.style.display = 'none';
 
-    addMessage('user', userText);
-    history.push({ role: 'user', content: userText });
+    let userContent;
+    try {
+      userContent = buildUserContent(userText, attachments);
+    } catch (error) {
+      restoreLastChatReservation();
+      loading = false;
+      sendBtn.disabled = false;
+      alert(error.message || 'Attachments are too large.');
+      return;
+    }
+
+    addMessage('user', userText, false, attachments);
+    history.push({ role: 'user', content: userContent });
 
     // typing indicator
     const { row: typingRow, bubble: typingBubble } = addMessage('ai', '', true);
@@ -1297,7 +1605,7 @@ header {
           role: h.role === 'ai' ? 'assistant' : 'user',
           content: h.content
         })),
-        { role: 'user', content: userText }
+        { role: 'user', content: userContent }
       ];
 
       const response = await fetch(DEEPSEEK_URL, {
@@ -1307,7 +1615,7 @@ header {
         },
         body: JSON.stringify({
           access_key: activeKey,
-          model: 'deepseek-chat',
+          model: 'deepseek-flash',
           messages,
           stream: true,
           max_tokens: 1024
@@ -1391,23 +1699,48 @@ header {
     input.style.height = Math.min(input.scrollHeight, 120) + 'px';
   });
 
+  attachBtn.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => addFiles(fileInput.files));
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    inputArea.addEventListener(eventName, e => {
+      e.preventDefault();
+      inputArea.classList.add('drop-active');
+    });
+  });
+  ['dragleave', 'drop'].forEach(eventName => {
+    inputArea.addEventListener(eventName, e => {
+      e.preventDefault();
+      inputArea.classList.remove('drop-active');
+    });
+  });
+  inputArea.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+
+  input.addEventListener('paste', e => {
+    const imageFiles = Array.from(e.clipboardData?.files || []).filter(file => file.type.startsWith('image/'));
+    if (imageFiles.length) addFiles(imageFiles);
+  });
+
+  function sendCurrent() {
+    const val = input.value.trim();
+    const attachments = pendingAttachments.slice();
+    if (!val && !attachments.length) return;
+    input.value = '';
+    input.style.height = '32px';
+    pendingAttachments = [];
+    renderPendingAttachments();
+    send(val, attachments);
+  }
+
   // send on Enter (Shift+Enter = newline)
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      const val = input.value.trim();
-      input.value = '';
-      input.style.height = '32px';
-      send(val);
+      sendCurrent();
     }
   });
 
-  sendBtn.addEventListener('click', () => {
-    const val = input.value.trim();
-    input.value = '';
-    input.style.height = '32px';
-    send(val);
-  });
+  sendBtn.addEventListener('click', sendCurrent);
 
   // suggestion chips
   document.querySelectorAll('.chip').forEach(chip => {
