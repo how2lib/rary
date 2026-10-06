@@ -1317,9 +1317,26 @@ header {
   let loading = false;
   let pendingAttachments = [];
 
+  // Large text/code attachments live here instead of being copied into every
+  // future API request. Each file is chunked once and searched on demand.
+  const attachmentLibrary = new Map();
+  let attachmentSequence = 0;
+
+  // Attachment limits are deliberately conservative because DeepSeek's
+  // context limit is measured in TOKENS, not browser file bytes.
   const MAX_FILE_BYTES = 12 * 1024 * 1024;
-  const MAX_TOTAL_INLINE_BYTES = 42 * 1024 * 1024;
   const MAX_ATTACHMENTS = 10;
+
+  // Keep requests comfortably below DeepSeek's 1M-token context window.
+  // These are character budgets, not token counts. Code can tokenize densely,
+  // so we intentionally leave a large safety margin for the system prompt,
+  // conversation, images, and generated output.
+  const MAX_REQUEST_CHARS = 1600000;
+  const MAX_HISTORY_CHARS = 350000;
+  const MAX_ATTACHMENT_CONTEXT_CHARS = 900000;
+  const TEXT_CHUNK_CHARS = 12000;
+  const TEXT_CHUNK_OVERLAP = 1200;
+  const MAX_RETRIEVED_CHUNKS = 80;
   const TEXT_EXTENSIONS = new Set([
     'txt','md','csv','json','js','ts','html','css','xml','yaml','yml','log',
     'py','lua','luau','rs','c','cpp','h','hpp','java','cs','go','php','sh','bat','ps1'
@@ -1446,10 +1463,14 @@ header {
           pendingAttachments.push({ kind: 'image', name: file.name, size: file.size, mime: file.type, dataUrl });
         } else if (file.type === 'application/pdf' || fileExtension(file.name) === 'pdf') {
           const text = await extractPdfText(file);
-          pendingAttachments.push({ kind: 'text', name: file.name, size: file.size, mime: file.type, text, label: 'PDF TEXT' });
+          const attachment = { kind: 'text', name: file.name, size: file.size, mime: file.type, text, label: 'PDF TEXT' };
+          indexAttachment(attachment);
+          pendingAttachments.push(attachment);
         } else if (TEXT_EXTENSIONS.has(fileExtension(file.name)) || file.type.startsWith('text/')) {
           const text = await readAsText(file);
-          pendingAttachments.push({ kind: 'text', name: file.name, size: file.size, mime: file.type, text, label: 'TEXT' });
+          const attachment = { kind: 'text', name: file.name, size: file.size, mime: file.type, text, label: 'TEXT' };
+          indexAttachment(attachment);
+          pendingAttachments.push(attachment);
         } else {
           alert(`${file.name}: this file type is not supported yet.`);
         }
@@ -1462,37 +1483,252 @@ header {
     fileInput.value = '';
   }
 
-  function buildUserContent(userText, attachments) {
-    const parts = [];
-    if (userText.trim()) {
-      parts.push({ type: 'text', text: userText.trim() });
+  function normalizeSearchText(text) {
+    return String(text || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9_./:-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function tokenizeQuery(text) {
+    return [...new Set(
+      normalizeSearchText(text)
+        .split(/\s+/)
+        .map(token => token.trim())
+        .filter(token => token.length >= 2)
+    )].slice(0, 80);
+  }
+
+  function makeChunks(text) {
+    const source = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    if (!source) return [];
+
+    const chunks = [];
+    let offset = 0;
+
+    while (offset < source.length) {
+      let end = Math.min(source.length, offset + TEXT_CHUNK_CHARS);
+
+      // Prefer natural boundaries for Markdown/code so retrieval results are
+      // much more useful than arbitrary character slices.
+      if (end < source.length) {
+        const boundary = Math.max(
+          source.lastIndexOf('\n## ', end),
+          source.lastIndexOf('\n\n', end),
+          source.lastIndexOf('\n', end)
+        );
+        if (boundary > offset + Math.floor(TEXT_CHUNK_CHARS * 0.55)) {
+          end = boundary;
+        }
+      }
+
+      const chunkText = source.slice(offset, end).trim();
+      if (chunkText) {
+        chunks.push({
+          index: chunks.length,
+          start: offset,
+          end,
+          text: chunkText,
+          normalized: normalizeSearchText(chunkText)
+        });
+      }
+
+      if (end >= source.length) break;
+      offset = Math.max(end - TEXT_CHUNK_OVERLAP, offset + 1);
     }
 
-    let inlineBytes = new TextEncoder().encode(userText).byteLength;
+    return chunks;
+  }
 
-    attachments.forEach(attachment => {
+  function indexAttachment(attachment) {
+    if (attachment.kind !== 'text') return null;
+
+    const id = `mcatt-${++attachmentSequence}`;
+    const chunks = makeChunks(attachment.text);
+    const record = {
+      id,
+      name: attachment.name,
+      size: attachment.size,
+      mime: attachment.mime,
+      textLength: attachment.text.length,
+      chunks
+    };
+
+    attachmentLibrary.set(id, record);
+    attachment.libraryId = id;
+    attachment.chunkCount = chunks.length;
+    return record;
+  }
+
+  function scoreChunk(chunk, queryTokens, fileName) {
+    if (!queryTokens.length) return 0;
+
+    const haystack = chunk.normalized;
+    const fileHaystack = normalizeSearchText(fileName);
+    let score = 0;
+
+    for (const token of queryTokens) {
+      if (haystack.includes(token)) score += 1;
+      if (fileHaystack.includes(token)) score += 2;
+
+      // Exact identifier/path matches are especially valuable for Roblox code.
+      if (token.includes('/') || token.includes('.') || token.includes('_') || token.includes(':')) {
+        if (haystack.includes(token)) score += 4;
+      }
+    }
+
+    return score;
+  }
+
+  function retrieveAttachmentChunks(attachment, query, maxChars = MAX_ATTACHMENT_CONTEXT_CHARS) {
+    const record = attachment.libraryId ? attachmentLibrary.get(attachment.libraryId) : indexAttachment(attachment);
+    if (!record || !record.chunks.length) return '';
+
+    const queryTokens = tokenizeQuery(`${query} ${attachment.name}`);
+    let ranked = record.chunks.map(chunk => ({
+      chunk,
+      score: scoreChunk(chunk, queryTokens, record.name)
+    }));
+
+    const hasMatches = ranked.some(item => item.score > 0);
+
+    if (hasMatches) {
+      ranked.sort((a, b) => b.score - a.score || a.chunk.index - b.chunk.index);
+    } else {
+      // If the user simply uploads a file without a meaningful search query,
+      // provide the beginning rather than the entire file.
+      ranked.sort((a, b) => a.chunk.index - b.chunk.index);
+    }
+
+    const selected = [];
+    let used = 0;
+
+    for (const item of ranked.slice(0, MAX_RETRIEVED_CHUNKS)) {
+      const block = `\n[FILE: ${record.name} · CHUNK ${item.chunk.index + 1}/${record.chunks.length}]\n${item.chunk.text}\n[END CHUNK]\n`;
+      if (used + block.length > maxChars) continue;
+      selected.push({ ...item, block });
+      used += block.length;
+    }
+
+    // Keep adjacent chunks when possible. This helps preserve function/class
+    // boundaries when a match happens near a chunk edge.
+    selected.sort((a, b) => a.chunk.index - b.chunk.index);
+
+    return selected.map(item => item.block).join('');
+  }
+
+  function makeHistoryContent(userText, attachments) {
+    const parts = [];
+    if (userText.trim()) parts.push(userText.trim());
+
+    for (const attachment of attachments) {
       if (attachment.kind === 'image') {
-        inlineBytes += attachment.dataUrl.length;
-        if (inlineBytes > MAX_TOTAL_INLINE_BYTES) {
-          throw new Error('Attachments are too large for one request. Remove an image and try again.');
+        parts.push(`[ATTACHED IMAGE: ${attachment.name}]`);
+      } else {
+        const record = attachment.libraryId ? attachmentLibrary.get(attachment.libraryId) : null;
+        parts.push(`[ATTACHED FILE: ${attachment.name}${record ? ` · ${record.chunks.length} searchable chunks` : ''}]`);
+      }
+    }
+
+    return parts.join('\n\n');
+  }
+
+  function estimateContentChars(content) {
+    if (typeof content === 'string') return content.length;
+    if (!Array.isArray(content)) return 0;
+    return content.reduce((total, part) => {
+      if (part?.type === 'text') return total + String(part.text || '').length;
+      if (part?.type === 'image_url') return total + 12000;
+      return total;
+    }, 0);
+  }
+
+  function buildContextMessages(currentContent, extraMessages = []) {
+    const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
+    let usedChars = SYSTEM_PROMPT.length + estimateContentChars(currentContent);
+
+    // The last history item is the current user message. It is intentionally
+    // excluded here because currentContent is appended separately below.
+    // This prevents the current prompt from being sent twice.
+    const historyEnd = history.length && history[history.length - 1].role === 'user'
+      ? history.length - 1
+      : history.length;
+
+    const selected = [];
+    for (let i = historyEnd - 1; i >= 0; i--) {
+      const item = history[i];
+      const chars = estimateContentChars(item.content);
+      if (usedChars + chars > MAX_HISTORY_CHARS) continue;
+      selected.push({
+        role: item.role === 'ai' ? 'assistant' : 'user',
+        content: item.content
+      });
+      usedChars += chars;
+    }
+
+    selected.reverse();
+    messages.push(...selected);
+    messages.push({ role: 'user', content: currentContent });
+
+    for (const item of extraMessages) {
+      const chars = estimateContentChars(item.content);
+      if (usedChars + chars > MAX_REQUEST_CHARS) break;
+      messages.push(item);
+      usedChars += chars;
+    }
+
+    return messages;
+  }
+
+  function buildUserContent(userText, attachments) {
+    const parts = [];
+    const query = userText.trim();
+    if (query) parts.push({ type: 'text', text: query });
+
+    let inlineChars = query.length;
+
+    for (const attachment of attachments) {
+      if (attachment.kind === 'image') {
+        const imageSize = attachment.dataUrl.length;
+        if (inlineChars + imageSize > MAX_REQUEST_CHARS) {
+          throw new Error('Images are too large for the current context budget. Remove an image and try again.');
         }
+
         parts.push({
           type: 'image_url',
           image_url: { url: attachment.dataUrl, detail: 'auto' }
         });
-      } else {
-        const fileText = `\n\n[ATTACHED FILE: ${attachment.name}]\n${attachment.text}\n[END ATTACHED FILE: ${attachment.name}]`;
-        inlineBytes += fileText.length;
-        if (inlineBytes > MAX_TOTAL_INLINE_BYTES) {
-          throw new Error('Attached text is too large for one request. Remove a file and try again.');
-        }
-        parts.push({ type: 'text', text: fileText });
+        inlineChars += imageSize;
+        continue;
       }
-    });
 
-    return parts.length === 1 && parts[0].type === 'text'
-      ? parts[0].text
-      : parts;
+      const retrieved = retrieveAttachmentChunks(attachment, query, MAX_ATTACHMENT_CONTEXT_CHARS);
+      if (!retrieved) {
+        parts.push({
+          type: 'text',
+          text: `\n[ATTACHED FILE: ${attachment.name}]\nThe file was indexed, but no readable text was found.\n[END ATTACHED FILE]`
+        });
+        continue;
+      }
+
+      const fileHeader = `\n\n[SEARCHED ATTACHMENT: ${attachment.name}]\n`;
+      const fileFooter = `\n[END SEARCHED ATTACHMENT: ${attachment.name}]`;
+      const fileText = fileHeader + retrieved + fileFooter;
+
+      if (inlineChars + fileText.length > MAX_REQUEST_CHARS) {
+        const remaining = Math.max(20000, MAX_REQUEST_CHARS - inlineChars - fileHeader.length - fileFooter.length);
+        const trimmed = retrieved.slice(0, remaining);
+        parts.push({ type: 'text', text: fileHeader + trimmed + '\n[TRIMMED TO REQUEST BUDGET]' + fileFooter });
+        inlineChars = MAX_REQUEST_CHARS;
+      } else {
+        parts.push({ type: 'text', text: fileText });
+        inlineChars += fileText.length;
+      }
+    }
+
+    if (!parts.length) return '';
+    return parts.length === 1 && parts[0].type === 'text' ? parts[0].text : parts;
   }
 
   function attachmentMarkup(attachments) {
@@ -1582,8 +1818,10 @@ header {
     suggsEl.style.display = 'none';
 
     let userContent;
+    let historyContent;
     try {
       userContent = buildUserContent(userText, attachments);
+      historyContent = makeHistoryContent(userText, attachments);
     } catch (error) {
       restoreLastChatReservation();
       loading = false;
@@ -1593,100 +1831,235 @@ header {
     }
 
     addMessage('user', userText, false, attachments);
-    history.push({ role: 'user', content: userContent });
+    // Never store raw attachment contents in history. Large files remain in the
+    // local searchable attachment library and are retrieved per request.
+    history.push({ role: 'user', content: historyContent });
 
-    // typing indicator
-    const { row: typingRow, bubble: typingBubble } = addMessage('ai', '', true);
+    const { bubble: typingBubble } = addMessage('ai', '', true);
 
-    try {
-      const messages = [
-        { role: 'system', content: SYSTEM_PROMPT },
-        ...history.slice(0, -1).map(h => ({
-          role: h.role === 'ai' ? 'assistant' : 'user',
-          content: h.content
-        })),
-        { role: 'user', content: userContent }
-      ];
+    // DeepSeek's context is 1M tokens. Keep individual generations reasonable,
+    // then automatically continue if the model reports finish_reason="length".
+    const CONTINUATION_MAX = 8;
+    const OUTPUT_TOKENS_PER_PASS = 32768;
 
+    let fullText = '';
+    let completed = false;
+    let continuationCount = 0;
+    let lastFinishReason = null;
+
+    const updateBubble = (text, streaming = true) => {
+      const cursor = streaming
+        ? '<span style="display:inline-block;width:8px;height:1em;background:var(--accent);margin-left:2px;vertical-align:middle;animation:pulse 0.8s ease-in-out infinite;opacity:0.8;"></span>'
+        : '';
+      typingBubble.innerHTML = renderMarkdown(text || '') + cursor;
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+    };
+
+    function normalizeContent(value) {
+      if (typeof value === 'string') return value;
+      if (Array.isArray(value)) {
+        return value
+          .filter(part => part?.type === 'text' || typeof part?.text === 'string')
+          .map(part => String(part?.text || ''))
+          .join('');
+      }
+      return '';
+    }
+
+    async function requestCompletion(messages, continuation = false) {
       const response = await fetch(DEEPSEEK_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'text/event-stream, application/json, text/plain'
         },
         body: JSON.stringify({
           access_key: activeKey,
           model: 'deepseek-flash',
           messages,
           stream: true,
-          max_tokens: 1024
+          // A much larger per-pass output than the old 1024-token setting.
+          // If it still hits the limit, sendCompletion() automatically asks
+          // DeepSeek to continue in the same visible MC bubble.
+          max_tokens: OUTPUT_TOKENS_PER_PASS
         })
       });
 
+      const contentType = (response.headers.get('content-type') || '').toLowerCase();
+      const rawBody = response.body;
+
       if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err?.error?.message || `HTTP ${response.status}`);
+        const rawError = await response.text().catch(() => '');
+        let message = `HTTP ${response.status}`;
+        try {
+          const parsedError = JSON.parse(rawError);
+          message = parsedError?.error?.message || parsedError?.message || message;
+        } catch (_) {
+          if (rawError.trim()) message = rawError.trim().slice(0, 1000);
+        }
+        throw new Error(message);
       }
 
-      if (!response.body) {
-        throw new Error('The backend returned no response stream.');
-      }
+      if (!rawBody) throw new Error('The backend returned no response body.');
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let fullText = '';
-      let buffer = '';
+      let passText = '';
+      let finishReason = null;
+      let sawStreamEvent = false;
       let streamFinished = false;
 
-      while (!streamFinished) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      const appendPiece = piece => {
+        if (!piece) return;
+        passText += piece;
+        fullText += piece;
+        updateBubble(fullText, true);
+      };
 
-        buffer += decoder.decode(value, { stream: true });
+      // Some Workers return JSON even when stream=true. Handle that path too.
+      if (!contentType.includes('text/event-stream')) {
+        const textBody = await new Response(rawBody).text();
+        let parsed = null;
+        try { parsed = JSON.parse(textBody); } catch (_) {}
 
-        const events = buffer.split(/\r?\n\r?\n/);
-        buffer = events.pop() || '';
+        const apiError = parsed?.error?.message || parsed?.error;
+        if (apiError) throw new Error(String(apiError));
 
-        for (const event of events) {
-          for (const line of event.split(/\r?\n/)) {
-            if (!line.startsWith('data:')) continue;
+        const choice = parsed?.choices?.[0];
+        const content = normalizeContent(choice?.message?.content ?? choice?.delta?.content);
+        appendPiece(content || (parsed && !parsed.choices ? '' : ''));
+        finishReason = choice?.finish_reason || parsed?.finish_reason || null;
 
-            const data = line.slice(5).trim();
-            if (!data) continue;
+        // Plain-text Worker fallback.
+        if (!content && textBody.trim() && !parsed) {
+          appendPiece(textBody.trim());
+          finishReason = 'stop';
+        }
+      } else {
+        const reader = rawBody.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
 
-            if (data === '[DONE]') {
-              streamFinished = true;
-              break;
-            }
+        const consumeEvent = event => {
+          const lines = event.split(/\r?\n/);
+          const dataLines = lines
+            .filter(line => line.startsWith('data:'))
+            .map(line => line.slice(5).trim());
 
-            try {
-              const parsed = JSON.parse(data);
-              const delta = parsed?.choices?.[0]?.delta?.content || '';
+          if (!dataLines.length) return;
+          const data = dataLines.join('\n');
+          if (!data) return;
 
-              if (delta) {
-                fullText += delta;
-                typingBubble.innerHTML =
-                  renderMarkdown(fullText) +
-                  '<span style="display:inline-block;width:8px;height:1em;background:var(--accent);margin-left:2px;vertical-align:middle;animation:pulse 0.8s ease-in-out infinite;opacity:0.8;"></span>';
-                msgsEl.scrollTop = msgsEl.scrollHeight;
-              }
-            } catch (_) {
-              // Ignore malformed/incomplete SSE data.
-            }
+          if (data === '[DONE]') {
+            streamFinished = true;
+            return;
           }
 
-          if (streamFinished) break;
+          let parsed;
+          try {
+            parsed = JSON.parse(data);
+          } catch (_) {
+            // Ignore non-JSON informational SSE events.
+            return;
+          }
+
+          sawStreamEvent = true;
+
+          const apiError = parsed?.error?.message || parsed?.error;
+          if (apiError) throw new Error(String(apiError));
+
+          const choice = parsed?.choices?.[0];
+          const delta = choice?.delta || {};
+          const piece = normalizeContent(delta.content);
+          const messagePiece = normalizeContent(choice?.message?.content);
+          appendPiece(piece || messagePiece);
+
+          if (choice?.finish_reason) finishReason = choice.finish_reason;
+        };
+
+        while (!streamFinished) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const events = buffer.split(/\r?\n\r?\n/);
+          buffer = events.pop() || '';
+
+          for (const event of events) {
+            consumeEvent(event);
+            if (streamFinished) break;
+          }
+        }
+
+        buffer += decoder.decode();
+        if (!streamFinished && buffer.trim()) consumeEvent(buffer);
+
+        if (!passText && !sawStreamEvent) {
+          throw new Error('The stream returned no usable events.');
         }
       }
 
-      typingBubble.innerHTML = renderMarkdown(fullText);
+      // Some proxies omit finish_reason from the final stream chunk. If the
+      // stream ended normally with content, treat it as complete. If DeepSeek
+      // explicitly says "length", the caller will automatically continue.
+      if (!finishReason && passText) finishReason = 'stop';
+      lastFinishReason = finishReason;
+
+      return { passText, finishReason, contentType };
+    }
+
+    try {
+      // Initial request. Current content is built once; the history builder
+      // intentionally excludes the just-added user history entry.
+      let messages = buildContextMessages(userContent);
+
+      while (!completed) {
+        const result = await requestCompletion(messages, continuationCount > 0);
+
+        if (result.finishReason !== 'length') {
+          completed = true;
+          break;
+        }
+
+        if (continuationCount >= CONTINUATION_MAX) {
+          // We still keep everything already generated, but tell the user why
+          // the automatic continuation stopped rather than silently truncating.
+          fullText += '\n\n[Automatic continuation limit reached.]';
+          updateBubble(fullText, false);
+          completed = true;
+          break;
+        }
+
+        continuationCount++;
+
+        // Give the model its own previous output, then explicitly request the
+        // next part. This keeps continuation seamless while preserving the
+        // normal chat history. The continuation request itself is also subject
+        // to the same 1M-context budget.
+        const continuationInstruction = [
+          'Continue the response from exactly where you stopped.',
+          'Do not repeat anything already written.',
+          'Do not mention token limits or that you are continuing.',
+          'Return only the next part of the answer.'
+        ].join(' ');
+
+        messages = buildContextMessages(userContent, [
+          { role: 'assistant', content: fullText },
+          { role: 'user', content: continuationInstruction }
+        ]);
+      }
+
+      if (!fullText.trim()) {
+        throw new Error(`The model returned no assistant text (finish_reason: ${lastFinishReason || 'unknown'}).`);
+      }
+
+      updateBubble(fullText, false);
       history.push({ role: 'ai', content: fullText });
       msgsEl.scrollTop = msgsEl.scrollHeight;
 
     } catch (err) {
       restoreLastChatReservation();
-      let msg = `[ SIGNAL LOST. ${err.message || 'try again.'} ]`;
-      typingBubble.innerHTML = `<span class="error-txt">${msg}</span>`;
-      history.pop();
+      const message = escapeHtml(err?.message || 'Unknown response error.');
+      typingBubble.innerHTML = `<span class="error-txt">[ SIGNAL LOST. ${message} ]</span>`;
+      if (history.length && history[history.length - 1].role === 'user') history.pop();
     }
 
     loading = false;
