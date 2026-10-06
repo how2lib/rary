@@ -1801,16 +1801,19 @@ header {
   // attempting to bypass model safety decisions. The access key is preserved
   // because it is stored independently of the conversation state.
   function resetBrokenSession(reason = 'empty response') {
-    console.warn('[MICROCHIP] Resetting broken session:', reason);
+    console.warn('[MICROCHIP] Resetting broken backend session without page reload:', reason);
 
+    // Reset only transient backend/session state. The visible DOM, access key,
+    // local chat history, attachments, and quota remain untouched.
     try {
       sessionStorage.removeItem('microchip_conversation');
       sessionStorage.removeItem('microchip_history');
     } catch (_) {}
 
-    setTimeout(() => {
-      window.location.reload();
-    }, 250);
+    // There is intentionally no window.location.reload() here. The next
+    // request rebuilds its context from the in-memory history array, which
+    // gives the backend a fresh request/session while keeping the conversation
+    // visible to the user.
   }
 
   // Treat an assistant claiming to be a different model/persona as a broken
@@ -1881,6 +1884,7 @@ header {
     let continuationCount = 0;
     let lastFinishReason = null;
     let identityRecoveryUsed = false;
+    let transportRecoveryUsed = false;
 
     const updateBubble = (text, streaming = true) => {
       const cursor = streaming
@@ -2049,7 +2053,24 @@ header {
       let messages = buildContextMessages(userContent);
 
       while (!completed) {
-        const result = await requestCompletion(messages, continuationCount > 0);
+        let result;
+
+        try {
+          result = await requestCompletion(messages, continuationCount > 0);
+        } catch (requestError) {
+          // A transport/parser/backend failure should not destroy the page or
+          // visible conversation. Rebuild the request once from the existing
+          // in-memory history and send it as a fresh backend request.
+          if (!transportRecoveryUsed) {
+            transportRecoveryUsed = true;
+            resetBrokenSession(requestError?.message || 'request failure');
+            fullText = '';
+            typingBubble.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+            messages = buildContextMessages(userContent);
+            continue;
+          }
+          throw requestError;
+        }
 
         // If the upstream response suddenly identifies itself as another model
         // or explicitly says it is not Microchip, treat that as a corrupted
@@ -2120,13 +2141,9 @@ header {
       const message = escapeHtml(err?.message || 'Unknown response error.');
       typingBubble.innerHTML = `<span class="error-txt">[ SIGNAL LOST. ${message} ]</span>`;
 
-      // Transport/parser/backend failures are recoverable. Reload the page
-      // after showing the error so a corrupted frontend stream cannot leave
-      // the chat stuck in a dead state.
-      setTimeout(() => {
-        window.location.reload();
-      }, 900);
-
+      // Do not reload the page on a failed request. The UI and conversation
+      // stay intact; the failed user turn is removed from the model context
+      // so the next send starts cleanly without duplicating the prompt.
       if (history.length && history[history.length - 1].role === 'user') history.pop();
     }
 
