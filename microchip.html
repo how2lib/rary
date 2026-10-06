@@ -1797,6 +1797,40 @@ header {
     return { row, bubble };
   }
 
+  // Recover from genuinely broken/empty sessions without retrying or
+  // attempting to bypass model safety decisions. The access key is preserved
+  // because it is stored independently of the conversation state.
+  function resetBrokenSession(reason = 'empty response') {
+    console.warn('[MICROCHIP] Resetting broken session:', reason);
+
+    try {
+      sessionStorage.removeItem('microchip_conversation');
+      sessionStorage.removeItem('microchip_history');
+    } catch (_) {}
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 250);
+  }
+
+  // Treat an assistant claiming to be a different model/persona as a broken
+  // session rather than normal chat content. This is deliberately narrower
+  // than looking for safety/refusal phrases. It prevents a corrupted persona
+  // or upstream model identity from becoming part of the saved conversation.
+  function isSessionIdentityCorruption(text) {
+    const normalized = String(text || '')
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u201C\u201D]/g, '"')
+      .trim();
+
+    if (!normalized) return false;
+
+    const foreignIdentity = /(?:^|[\n\r])\s*(?:i(?:'|\u2019)?m|i am)\s+(?:claude|chatgpt|gpt[- ]?(?:4|5|5\.5|5\.6)|gemini|copilot|llama|mistral|qwen)\b/i;
+    const explicitWrongWrapper = /\b(?:i(?:'|\u2019)?m|i am)\s+(?:not|no longer)\s+(?:microchip|mc)\b/i;
+
+    return foreignIdentity.test(normalized) || explicitWrongWrapper.test(normalized);
+  }
+
   async function send(userText, attachments = []) {
     if ((!userText.trim() && !attachments.length) || loading) return;
 
@@ -1846,6 +1880,7 @@ header {
     let completed = false;
     let continuationCount = 0;
     let lastFinishReason = null;
+    let identityRecoveryUsed = false;
 
     const updateBubble = (text, streaming = true) => {
       const cursor = streaming
@@ -1911,7 +1946,9 @@ header {
         if (!piece) return;
         passText += piece;
         fullText += piece;
-        updateBubble(fullText, true);
+        // Keep streamed assistant text buffered until the pass has been
+        // validated. This prevents a corrupted session response from being
+        // visibly rendered and then having to be removed afterward.
       };
 
       // Some Workers return JSON even when stream=true. Handle that path too.
@@ -2014,6 +2051,21 @@ header {
       while (!completed) {
         const result = await requestCompletion(messages, continuationCount > 0);
 
+        // If the upstream response suddenly identifies itself as another model
+        // or explicitly says it is not Microchip, treat that as a corrupted
+        // session. Do not save or render that response. Rebuild the same request
+        // once, without charging another chat or appending the bad output to
+        // history. This is a session-integrity recovery, not a refusal detector.
+        if (result.finishReason !== 'length' &&
+            isSessionIdentityCorruption(fullText) &&
+            !identityRecoveryUsed) {
+          identityRecoveryUsed = true;
+          fullText = '';
+          typingBubble.innerHTML = '<span class=\"typing-dot\"></span><span class=\"typing-dot\"></span><span class=\"typing-dot\"></span>';
+          messages = buildContextMessages(userContent);
+          continue;
+        }
+
         if (result.finishReason !== 'length') {
           completed = true;
           break;
@@ -2048,7 +2100,15 @@ header {
       }
 
       if (!fullText.trim()) {
-        throw new Error(`The model returned no assistant text (finish_reason: ${lastFinishReason || 'unknown'}).`);
+        typingBubble.innerHTML = `<span class="error-txt">[ EMPTY RESPONSE. RESETTING SESSION... ]</span>`;
+        resetBrokenSession(`no assistant text; finish_reason=${lastFinishReason || 'unknown'}`);
+        return;
+      }
+
+      if (isSessionIdentityCorruption(fullText)) {
+        typingBubble.innerHTML = '<span class="error-txt">[ SESSION CORRUPTED. RESETTING... ]</span>';
+        resetBrokenSession('unexpected model identity in assistant response');
+        return;
       }
 
       updateBubble(fullText, false);
@@ -2059,6 +2119,14 @@ header {
       restoreLastChatReservation();
       const message = escapeHtml(err?.message || 'Unknown response error.');
       typingBubble.innerHTML = `<span class="error-txt">[ SIGNAL LOST. ${message} ]</span>`;
+
+      // Transport/parser/backend failures are recoverable. Reload the page
+      // after showing the error so a corrupted frontend stream cannot leave
+      // the chat stuck in a dead state.
+      setTimeout(() => {
+        window.location.reload();
+      }, 900);
+
       if (history.length && history[history.length - 1].role === 'user') history.pop();
     }
 
