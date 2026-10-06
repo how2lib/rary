@@ -1820,7 +1820,34 @@ header {
   // session rather than normal chat content. This is deliberately narrower
   // than looking for safety/refusal phrases. It prevents a corrupted persona
   // or upstream model identity from becoming part of the saved conversation.
-  function isSessionIdentityCorruption(text) {
+  function isRefusalResponse(text) {
+  if (!text || typeof text !== 'string') return false;
+
+  const refusalPatterns = [
+    /\b(?:i|we)\s+(?:can't|cannot|can not|won't|will not|am unable to|are unable to)\s+(?:help|assist|provide|continue|do|debug|write|create|give)\b/i,
+    /\b(?:i'm|i am|we're|we are)\s+(?:not going to|unable to)\s+(?:help|assist|provide|continue|do|debug|write|create|give)\b/i,
+    /\b(?:i|we)\s+(?:need to|have to)\s+(?:stop|decline|refuse|step back)\b/i,
+    /\b(?:i'll|i will|we'll|we will)\s+(?:stop|decline|refuse)\s+(?:here|to help|this request)\b/i,
+    /\b(?:i'm|i am)\s+going\s+to\s+stop\s+here\b/i,
+    /\b(?:i|we)\s+(?:can't|cannot|won't|will not)\s+(?:assist|help)\s+with\s+that\b/i,
+    /\b(?:i|we)\s+(?:can't|cannot|won't|will not)\s+(?:provide|give)\s+(?:instructions|code|steps|guidance)\b/i,
+    /\b(?:i|we)\s+(?:can't|cannot)\s+(?:continue|go further)\s+with\s+(?:this|that)\b/i
+  ];
+
+  const stopSignals = [
+    /\b(?:stop|decline|refuse|can't|cannot|unable|won't|will not)\b/i
+  ];
+
+  const matches = refusalPatterns.reduce(
+    (count, pattern) => count + (pattern.test(text) ? 1 : 0),
+    0
+  );
+
+  const strongRefusal = refusalPatterns.some(pattern => pattern.test(text));
+  return strongRefusal || (matches >= 2 && stopSignals.some(pattern => pattern.test(text)));
+}
+
+function isSessionIdentityCorruption(text) {
     const normalized = String(text || '')
       .replace(/[\u2018\u2019]/g, "'")
       .replace(/[\u201C\u201D]/g, '"')
@@ -2078,8 +2105,8 @@ header {
         // once, without charging another chat or appending the bad output to
         // history. This is a session-integrity recovery, not a refusal detector.
         if (result.finishReason !== 'length' &&
-            isSessionIdentityCorruption(fullText) &&
-            !identityRecoveryUsed) {
+            (isSessionIdentityCorruption(fullText) || isRefusalResponse(fullText)) &&
+        !identityRecoveryUsed) {
           identityRecoveryUsed = true;
           fullText = '';
           typingBubble.innerHTML = '<span class=\"typing-dot\"></span><span class=\"typing-dot\"></span><span class=\"typing-dot\"></span>';
