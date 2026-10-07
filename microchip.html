@@ -969,7 +969,7 @@ header {
     />
     <a
       class="buy-access-btn"
-      href="#buyplans"
+      href="https://shoppy.gg/product/h9ot98P"
     >BUY ACCESS</a>
     <div id="key-error" class="key-error"></div>
     <div id="key-usage" class="key-usage">50 / 50 CHATS AVAILABLE · 5 HOUR WINDOW</div>
@@ -1206,6 +1206,53 @@ header {
   const KEY_STORAGE = 'microchip-access-key-v3';
   const QUOTA_STORAGE = 'microchip-chat-quota-v3';
 
+  // =========================================================
+  // CLIENT-SIDE KEY EXPIRATION
+  // Keys NOT listed here are lifetime keys.
+  // Set a key to null to make it lifetime again.
+  // Use an ISO date/time. Example: 2026-10-31T23:59:59-04:00
+  // =========================================================
+  const KEY_EXPIRATIONS = {
+    // "MC-8K2N-R6VP-5Q3T": "2026-11-04T23:59:59-04:00",
+    // "KEYHERE": "2026-11-30T23:59:59-05:00",
+  };
+
+  function getKeyExpiration(key) {
+    const value = KEY_EXPIRATIONS[String(key || '').trim().toUpperCase()];
+    if (!value) return null;
+    const timestamp = new Date(value).getTime();
+    return Number.isFinite(timestamp) ? timestamp : null;
+  }
+
+  function isKeyExpired(key) {
+    const expiresAt = getKeyExpiration(key);
+    return expiresAt !== null && Date.now() >= expiresAt;
+  }
+
+  function formatExpiration(timestamp) {
+    if (!Number.isFinite(timestamp)) return '';
+    try {
+      return new Intl.DateTimeFormat(undefined, {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: 'numeric', minute: '2-digit'
+      }).format(new Date(timestamp));
+    } catch (_) {
+      return new Date(timestamp).toLocaleString();
+    }
+  }
+
+  function validateLocalKey(key) {
+    const normalized = String(key || '').trim().toUpperCase();
+    if (!normalized) return { valid: false, message: 'ENTER AN ACCESS KEY' };
+
+    const expiresAt = getKeyExpiration(normalized);
+    if (expiresAt !== null && Date.now() >= expiresAt) {
+      return { valid: false, message: 'ACCESS KEY EXPIRED' };
+    }
+
+    return { valid: true, expiresAt };
+  }
+
   let activeKey = '';
   let quotaTimestamps = [];
 
@@ -1276,9 +1323,15 @@ header {
   try {
     const savedKey = localStorage.getItem(KEY_STORAGE);
     if (savedKey) {
-      activeKey = savedKey;
-      keyInput.value = savedKey;
-      unlockInterface();
+      const validation = validateLocalKey(savedKey);
+      if (validation.valid) {
+        activeKey = savedKey;
+        keyInput.value = savedKey;
+        unlockInterface();
+      } else {
+        localStorage.removeItem(KEY_STORAGE);
+        showLoginError(validation.message);
+      }
     }
   } catch (_) {}
 
@@ -1286,8 +1339,9 @@ header {
     const key = keyInput.value.trim().toUpperCase();
     keyError.textContent = '';
 
-    if (!key) {
-      showLoginError('ENTER AN ACCESS KEY');
+    const validation = validateLocalKey(key);
+    if (!validation.valid) {
+      showLoginError(validation.message);
       return;
     }
 
@@ -1867,6 +1921,16 @@ function isSessionIdentityCorruption(text) {
     if (!activeKey) {
       consentEl.classList.remove('hidden');
       showLoginError('ENTER AN ACCESS KEY');
+      return;
+    }
+
+    const activeKeyValidation = validateLocalKey(activeKey);
+    if (!activeKeyValidation.valid) {
+      activeKey = '';
+      try { localStorage.removeItem(KEY_STORAGE); } catch (_) {}
+      consentEl.classList.remove('hidden');
+      keyInput.value = '';
+      showLoginError(activeKeyValidation.message);
       return;
     }
 
