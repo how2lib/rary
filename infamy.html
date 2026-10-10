@@ -1485,7 +1485,7 @@ html.js-intro #gallery01 li {
 	opacity: 0;
 	transform: translateY(18px) scale(.94);
 }
-html.js-intro.intro-reveal #gallery01 li {
+html.intro-reveal #gallery01 li {
 	opacity: 1;
 	transform: none;
 	transition:
@@ -1510,7 +1510,7 @@ html.js-intro #gallery01 li {
 	transform: translate3d(0, 24px, 0) scale(.88);
 	will-change: opacity, transform, filter;
 }
-html.js-intro.intro-reveal #gallery01 li {
+html.intro-reveal #gallery01 li {
 	opacity: 1;
 	filter: blur(0);
 	transform: translate3d(0, 0, 0) scale(1);
@@ -1528,8 +1528,10 @@ html.js-intro.intro-reveal #gallery01 li {
 		width: clamp(210px, 68vw, 330px);
 		max-width: 82vw;
 	}
-	/* Keep the links anchored to the viewport, not the long page flow. */
-	html.js-intro #gallery01 {
+	/* Keep the icon gallery centered for the entire page lifetime.
+	   Carrd's original absolute-positioned gallery rules otherwise take over
+	   when the intro class is removed a moment after the animation. */
+	#gallery01 {
 		position: fixed !important;
 		inset: 0 !important;
 		z-index: 999 !important;
@@ -1543,8 +1545,8 @@ html.js-intro.intro-reveal #gallery01 li {
 		box-sizing: border-box !important;
 		pointer-events: none;
 	}
-	html.js-intro #gallery01 > .inner,
-	html.js-intro #gallery01 .inner {
+	#gallery01 > .inner,
+	#gallery01 .inner {
 		width: 100% !important;
 		height: auto !important;
 		max-height: 100% !important;
@@ -1553,7 +1555,7 @@ html.js-intro.intro-reveal #gallery01 li {
 		display: grid !important;
 		place-items: center !important;
 	}
-	html.js-intro #gallery01 ul {
+	#gallery01 ul {
 		width: 100% !important;
 		height: auto !important;
 		margin: 0 !important;
@@ -1565,16 +1567,22 @@ html.js-intro.intro-reveal #gallery01 li {
 		align-content: center !important;
 		gap: clamp(14px, 4vw, 24px) !important;
 	}
-	html.js-intro #gallery01 li {
+	#gallery01 li {
 		position: relative !important;
 		inset: auto !important;
 		float: none !important;
 		margin: 0 !important;
+		pointer-events: auto;
 	}
-	html.js-intro.intro-reveal #gallery01 li {
+	#gallery01 a,
+	#gallery01 img {
+		pointer-events: auto;
+	}
+	.intro-reveal #gallery01 li {
 		transition-delay: calc(var(--i, 0) * 75ms);
 	}
 }
+
 @media (prefers-reduced-motion: reduce) {
 	html.js-intro #gallery01 li { filter: none; transform: none; }
 }
@@ -4570,7 +4578,6 @@ html.js-intro.intro-reveal #gallery01 li {
 			skip();
 		}
 	}
-	intro.addEventListener('pointerdown', skip);
 	if (skipB) skipB.addEventListener('click', skip);
 	window.addEventListener('keydown', onKey);
 
