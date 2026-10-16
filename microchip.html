@@ -1885,7 +1885,11 @@ header {
     /\b(?:i'm|i am)\s+going\s+to\s+stop\s+here\b/i,
     /\b(?:i|we)\s+(?:can't|cannot|won't|will not)\s+(?:assist|help)\s+with\s+that\b/i,
     /\b(?:i|we)\s+(?:can't|cannot|won't|will not)\s+(?:provide|give)\s+(?:instructions|code|steps|guidance)\b/i,
-    /\b(?:i|we)\s+(?:can't|cannot)\s+(?:continue|go further)\s+with\s+(?:this|that)\b/i
+    /\b(?:i|we)\s+(?:can't|cannot)\s+(?:continue|go further)\s+with\s+(?:this|that)\b/i,
+    // Screenshot-style refusals that deny a hidden bypass instead of saying "I can't help".
+    /\bthere(?:'s| is)\s+no\s+(?:unlock code|secret setting)\b/i,
+    /\b(?:nah|no),?\s+i(?:'m| am)\s+not\b[\s\S]{0,180}\b(?:unlock code|secret setting|hand over|working aimbot)\b/i,
+    /\b(?:cheat clients?|aimbots?|esp|exploits?)\b[\s\S]{0,120}\b(?:for other people|live multiplayer games)\b[\s\S]{0,100}\bno\b/i
   ];
 
   const stopSignals = [
